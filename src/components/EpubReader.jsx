@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Bookmark, Highlighter, Settings, ZoomIn, ZoomOut } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Bookmark, Highlighter, Settings } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
+
+const THEMES = {
+  light: { bg: '#f8f3e8', text: '#1e1508', label: 'Parchment' },
+  sepia: { bg: '#efe3c8', text: '#3d2b0e', label: 'Sepia' },
+  dark:  { bg: '#14100c', text: '#ddd0b8', label: 'Dark' },
+}
 
 export default function EpubReader({ book, onClose }) {
   const { updateBook, addHighlight, addBookmark } = useBooks()
@@ -9,111 +15,117 @@ export default function EpubReader({ book, onClose }) {
   const viewerRef = useRef()
   const renditionRef = useRef()
   const bookRef = useRef()
-  const [progress, setProgress] = useState(book.progress || 0)
-  const [fontSize, setFontSize] = useState(100)
+
+  const [progress, setProgress]       = useState(book.progress || 0)
+  const [theme, setTheme]             = useState('light')
+  const [fontSize, setFontSize]       = useState(100)
   const [showSettings, setShowSettings] = useState(false)
-  const [currentCfi, setCurrentCfi] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [isPdf, setIsPdf] = useState(false)
-  const [pdfUrl, setPdfUrl] = useState(null)
-  const [pdfPage, setPdfPage] = useState(1)
-  const [pdfTotal, setPdfTotal] = useState(0)
-  const pdfRef = useRef()
+  const [currentCfi, setCurrentCfi]   = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState(null)
+  const [isPdf, setIsPdf]             = useState(false)
+  const [pdfUrl, setPdfUrl]           = useState(null)
+
+  // ── apply reader theme to epub rendition ──
+  const applyTheme = (r, t, fs) => {
+    const { bg, text } = THEMES[t]
+    r.themes.default({
+      body: {
+        background:  `${bg} !important`,
+        color:       `${text} !important`,
+        fontFamily:  '"Cormorant Garamond", Georgia, serif !important',
+        fontSize:    `${fs}% !important`,
+        lineHeight:  '1.85 !important',
+        padding:     '0 2.5rem !important',
+        maxWidth:    '680px !important',
+        margin:      '0 auto !important',
+      },
+      p:  { marginBottom: '1em !important' },
+      h1: { fontFamily: '"Cinzel", serif !important', color: `${text} !important` },
+      h2: { fontFamily: '"Cinzel", serif !important', color: `${text} !important` },
+      a:  { color: '#9b5030 !important' },
+    })
+  }
 
   useEffect(() => {
     const fileType = book.file_type || (book.file_name?.endsWith('.pdf') ? 'pdf' : 'epub')
 
     if (fileType === 'pdf') {
       setIsPdf(true)
-      if (book.file_data) {
-        setPdfUrl(book.file_data)
-      }
+      if (book.file_data) setPdfUrl(book.file_data)
       setLoading(false)
       return
     }
 
-    // ePub flow
     let mounted = true
-    const initEpub = async () => {
+    const init = async () => {
       try {
         const Epub = (await import('epubjs')).default
 
-        let epubSrc
-        if (book.file_data) {
-          epubSrc = book.file_data
-        } else if (book.epub_path) {
+        let src = book.file_data || null
+        if (!src && book.epub_path) {
           const { createClient } = await import('@supabase/supabase-js')
           const sb = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
           const { data } = await sb.storage.from('epubs').createSignedUrl(book.epub_path, 3600)
-          epubSrc = data?.signedUrl
+          src = data?.signedUrl
         }
 
-        if (!epubSrc) { setError('No file found for this book.'); return }
+        if (!src)     { setError('No epub file found for this book.'); setLoading(false); return }
         if (!mounted) return
 
-        const epubBook = Epub(epubSrc)
-        bookRef.current = epubBook
+        const eb = Epub(src)
+        bookRef.current = eb
 
-        const rendition = epubBook.renderTo(viewerRef.current, {
-          width: '100%',
-          height: '100%',
-          spread: 'none',
-        })
-        renditionRef.current = rendition
+        const r = eb.renderTo(viewerRef.current, { width: '100%', height: '100%', spread: 'none' })
+        renditionRef.current = r
 
-        rendition.themes.default({
-          body: {
-            background: '#f8f3e8 !important',
-            color: '#2a1f10 !important',
-            fontFamily: '"Cormorant Garamond", Georgia, serif !important',
-            fontSize: `${fontSize}%`,
-            lineHeight: '1.8',
-            padding: '0 2rem !important',
-          },
-        })
+        applyTheme(r, 'light', 100)
 
-        const savedLoc = localStorage.getItem(`grn_loc_${book.id}`)
-        rendition.display(savedLoc || undefined)
+        const saved = localStorage.getItem(`grn_loc_${book.id}`)
+        r.display(saved || undefined)
 
-        rendition.on('relocated', async (loc) => {
+        r.on('relocated', async (loc) => {
           if (!mounted) return
           const cfi = loc.start.cfi
           setCurrentCfi(cfi)
           localStorage.setItem(`grn_loc_${book.id}`, cfi)
           try {
-            const pct = await epubBook.locations.percentageFromCfi(cfi)
+            const pct = await eb.locations.percentageFromCfi(cfi)
             const p = Math.round(pct * 100)
             setProgress(p)
             updateBook(book.id, { progress: p })
           } catch {}
         })
 
-        await epubBook.locations.generate(1024)
+        await eb.locations.generate(1024)
         if (mounted) setLoading(false)
 
       } catch (e) {
-        console.error('Epub error:', e)
-        if (mounted) { setError('Could not open this epub file. Make sure it is a valid .epub.'); setLoading(false) }
+        console.error(e)
+        if (mounted) { setError('Could not open this epub. Make sure it is a valid .epub file.'); setLoading(false) }
       }
     }
 
-    initEpub()
-    return () => { mounted = false; if (bookRef.current) bookRef.current.destroy() }
+    init()
+    return () => { mounted = false; bookRef.current?.destroy() }
   }, [book.id])
 
-  const changeFontSize = (size) => {
-    setFontSize(size)
-    renditionRef.current?.themes.default({ body: { fontSize: `${size}%` } })
+  const changeTheme = (t) => {
+    setTheme(t)
+    if (renditionRef.current) applyTheme(renditionRef.current, t, fontSize)
+  }
+
+  const changeFontSize = (fs) => {
+    setFontSize(fs)
+    if (renditionRef.current) applyTheme(renditionRef.current, theme, fs)
   }
 
   const handleHighlight = () => {
-    const selection = window.getSelection()
-    if (!selection?.toString().trim()) { toast('Select some text to highlight', 'error'); return }
-    const text = selection.toString().trim()
-    addHighlight({ book_id: book.id, text, cfi: currentCfi, color: 'gold', page_info: `${progress}%` })
+    const sel = window.getSelection()
+    if (!sel?.toString().trim()) { toast('Select some text first', 'error'); return }
+    addHighlight({ book_id: book.id, text: sel.toString().trim(), cfi: currentCfi, color: 'gold', page_info: `${progress}%` })
     toast('Passage highlighted ✦', 'success')
-    selection.removeAllRanges()
+    sel.removeAllRanges()
   }
 
   const handleBookmark = () => {
@@ -121,122 +133,111 @@ export default function EpubReader({ book, onClose }) {
     toast('Bookmark saved ✦', 'success')
   }
 
-  // ── PDF VIEWER ──
-  if (isPdf) {
-    return (
-      <div className="reader-container">
-        <div className="reader-toolbar">
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4a3828', fontFamily: 'Cinzel, serif', fontSize: '0.7rem' }}>
-            <X size={14} /> Close
-          </button>
-          <div className="reader-toolbar-title">{book.title}</div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {pdfTotal > 0 && (
-              <span style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', color: '#6a5040' }}>
-                Page {pdfPage} / {pdfTotal}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="reader-frame" style={{ background: '#525659' }}>
-          {pdfUrl ? (
-            <iframe
-              ref={pdfRef}
-              src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              title={book.title}
-              onLoad={() => setLoading(false)}
-            />
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem', color: '#ccc' }}>
-              <div style={{ fontSize: '3rem' }}>📄</div>
-              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.9rem' }}>
-                PDF file not found
-              </div>
-              <div style={{ fontSize: '0.8rem', opacity: 0.7, textAlign: 'center', maxWidth: 300 }}>
-                PDF viewing requires Supabase storage to be configured. Local PDF files are not supported in browser due to security restrictions.
-              </div>
-              <button className="btn btn-ghost" onClick={onClose} style={{ color: '#ccc', borderColor: 'rgba(255,255,255,0.3)' }}>Go Back</button>
-            </div>
-          )}
-        </div>
-
-        <div className="reader-controls">
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6a5040', fontFamily: 'Cinzel, serif', fontSize: '0.7rem' }}>
-            ← Back to Library
-          </button>
-          <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: '#8a7260' }}>
-            PDF Viewer
-          </div>
-          <div />
-        </div>
-      </div>
-    )
+  const navBtnStyle = {
+    background: 'none', border: 'none', cursor: 'pointer', padding: '.3rem',
+    color: theme === 'dark' ? '#c4a068' : '#5a3e28',
   }
 
-  // ── EPUB VIEWER ──
-  if (error) return (
-    <div className="reader-container" style={{ alignItems: 'center', justifyContent: 'center', gap: '1rem', background: '#f8f3e8' }}>
-      <div style={{ fontSize: '3rem' }}>📖</div>
-      <div style={{ fontFamily: 'Cinzel, serif', color: '#4a3828', fontSize: '0.95rem' }}>{error}</div>
-      <button className="btn btn-ghost" onClick={onClose} style={{ color: '#4a3828', borderColor: 'rgba(0,0,0,0.2)' }}>Go Back</button>
+  // ── PDF ──
+  if (isPdf) return (
+    <div className={`reader-container theme-${theme}`}>
+      <div className="reader-toolbar">
+        <button onClick={onClose} className="reader-btn"><X size={14} /> Close</button>
+        <span className="reader-toolbar-title">{book.title}</span>
+        <div style={{ display: 'flex', gap: '.4rem' }}>
+          {Object.entries(THEMES).map(([k]) => (
+            <span key={k} className={`theme-pill ${k} ${theme === k ? 'active' : ''}`} onClick={() => setTheme(k)}>{THEMES[k].label}</span>
+          ))}
+        </div>
+      </div>
+      <div className="reader-frame" style={{ background: '#404040' }}>
+        {pdfUrl
+          ? <iframe src={`${pdfUrl}#toolbar=1`} style={{ width: '100%', height: '100%', border: 'none' }} title={book.title} />
+          : <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '1rem', color: '#999' }}>
+              <div style={{ fontSize: '3rem' }}>📄</div>
+              <p style={{ fontFamily: 'Cinzel, serif', fontSize: '.9rem' }}>PDF requires Supabase storage to display</p>
+              <button className="btn btn-ghost" onClick={onClose} style={{ color: '#999', borderColor: 'rgba(255,255,255,.2)' }}>Go Back</button>
+            </div>
+        }
+      </div>
+      <div className="reader-controls">
+        <button onClick={onClose} className="reader-btn">← Library</button>
+        <div className="reader-progress"><div className="reader-progress-fill" style={{ width: `${progress}%` }} /></div>
+        <span className="reader-page-info">PDF</span>
+      </div>
     </div>
   )
 
+  // ── ERROR ──
+  if (error) return (
+    <div className={`reader-container theme-${theme}`} style={{ alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+      <div style={{ fontSize: '3rem' }}>📖</div>
+      <p style={{ fontFamily: 'Cinzel, serif', fontSize: '.95rem', color: theme === 'dark' ? '#c4a068' : '#4a3820' }}>{error}</p>
+      <button className="reader-btn" onClick={onClose} style={{ color: theme === 'dark' ? '#c4a068' : '#4a3820', border: '1px solid rgba(0,0,0,.2)', borderRadius: 4, padding: '.4rem 1rem' }}>Go Back</button>
+    </div>
+  )
+
+  // ── EPUB ──
   return (
-    <div className="reader-container">
+    <div className={`reader-container theme-${theme}`}>
+      {/* Toolbar */}
       <div className="reader-toolbar">
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4a3828', fontFamily: 'Cinzel, serif', fontSize: '0.7rem' }}>
-          <X size={14} /> Close
-        </button>
-        <div className="reader-toolbar-title">{book.title}</div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button onClick={handleHighlight} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 4, padding: '0.3rem 0.6rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', color: '#4a3828', fontFamily: 'Cinzel, serif' }}>
-            <Highlighter size={12} /> Highlight
-          </button>
-          <button onClick={handleBookmark} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 4, padding: '0.3rem 0.6rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.7rem', color: '#4a3828', fontFamily: 'Cinzel, serif' }}>
-            <Bookmark size={12} /> Bookmark
-          </button>
-          <button onClick={() => setShowSettings(!showSettings)} style={{ background: showSettings ? 'rgba(0,0,0,0.08)' : 'none', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 4, padding: '0.3rem', cursor: 'pointer', color: '#4a3828' }}>
-            <Settings size={14} />
-          </button>
+        <button onClick={onClose} className="reader-btn"><X size={14} /> Close</button>
+        <span className="reader-toolbar-title">{book.title}</span>
+        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+          <button onClick={handleHighlight} className="reader-btn"><Highlighter size={12} /> Highlight</button>
+          <button onClick={handleBookmark}  className="reader-btn"><Bookmark size={12} /> Bookmark</button>
+          <button onClick={() => setShowSettings(s => !s)} className="reader-btn" style={{ padding: '.3rem .4rem' }}><Settings size={14} /></button>
         </div>
       </div>
 
+      {/* Settings panel */}
       {showSettings && (
-        <div style={{ background: '#ede5d0', borderBottom: '1px solid rgba(0,0,0,0.1)', padding: '0.6rem 1.5rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', color: '#6a5040', letterSpacing: '0.1em' }}>FONT SIZE</span>
-          {[80, 90, 100, 115, 130].map(s => (
-            <button key={s} onClick={() => changeFontSize(s)} style={{ background: fontSize === s ? '#8b1a2e' : 'transparent', color: fontSize === s ? 'white' : '#4a3828', border: '1px solid rgba(0,0,0,0.15)', borderRadius: 4, padding: '0.2rem 0.5rem', cursor: 'pointer', fontFamily: 'Cinzel, serif', fontSize: '0.65rem' }}>
-              {s}%
-            </button>
-          ))}
+        <div style={{
+          padding: '.7rem 1.5rem',
+          borderBottom: `1px solid ${theme === 'dark' ? 'rgba(212,168,67,.15)' : 'rgba(0,0,0,.1)'}`,
+          background: theme === 'dark' ? '#1e1810' : theme === 'sepia' ? '#e4d4b0' : '#e8dfc8',
+          display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap',
+        }}>
+          {/* Theme switcher */}
+          <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.6rem', letterSpacing: '.12em', color: theme === 'dark' ? '#8a7055' : '#6a5038', marginRight: '.25rem' }}>THEME</span>
+            {Object.entries(THEMES).map(([k, v]) => (
+              <span key={k} className={`theme-pill ${k} ${theme === k ? 'active' : ''}`} onClick={() => changeTheme(k)}>{v.label}</span>
+            ))}
+          </div>
+          {/* Font size */}
+          <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.6rem', letterSpacing: '.12em', color: theme === 'dark' ? '#8a7055' : '#6a5038', marginRight: '.25rem' }}>SIZE</span>
+            {[80, 90, 100, 115, 130].map(s => (
+              <button key={s} onClick={() => changeFontSize(s)} style={{
+                background: fontSize === s ? (theme === 'dark' ? '#9b1f35' : '#5a3010') : 'transparent',
+                color: fontSize === s ? 'white' : theme === 'dark' ? '#c4a068' : '#4a3820',
+                border: `1px solid ${theme === 'dark' ? 'rgba(212,168,67,.2)' : 'rgba(0,0,0,.18)'}`,
+                borderRadius: 3, padding: '.18rem .5rem', cursor: 'pointer',
+                fontFamily: 'Cinzel, serif', fontSize: '.62rem',
+              }}>{s}%</button>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Reader */}
       <div className="reader-frame">
         {loading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f3e8', zIndex: 10 }}>
-            <div style={{ fontFamily: 'IM Fell English, serif', fontStyle: 'italic', color: '#8a7260', fontSize: '1.1rem' }}>
-              Opening your book...
-            </div>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEMES[theme].bg, zIndex: 10 }}>
+            <p style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', color: THEMES[theme].text, fontSize: '1.1rem', opacity: .7 }}>Opening your book...</p>
           </div>
         )}
-        <div ref={viewerRef} id="epub-viewer" />
+        <div ref={viewerRef} id="epub-viewer" style={{ background: THEMES[theme].bg }} />
       </div>
 
+      {/* Controls */}
       <div className="reader-controls">
-        <button onClick={() => renditionRef.current?.prev()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6a5040', padding: '0.3rem' }}>
-          <ChevronLeft size={20} />
-        </button>
-        <div className="reader-progress">
-          <div className="reader-progress-fill" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="reader-page-info">{progress}%</div>
-        <button onClick={() => renditionRef.current?.next()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6a5040', padding: '0.3rem' }}>
-          <ChevronRight size={20} />
-        </button>
+        <button style={navBtnStyle} onClick={() => renditionRef.current?.prev()}><ChevronLeft size={22} /></button>
+        <div className="reader-progress"><div className="reader-progress-fill" style={{ width: `${progress}%` }} /></div>
+        <span className="reader-page-info">{progress}%</span>
+        <button style={navBtnStyle} onClick={() => renditionRef.current?.next()}><ChevronRight size={22} /></button>
       </div>
     </div>
   )
