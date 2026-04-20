@@ -2,20 +2,20 @@
 
 :root {
   --gold: #c9a84c;
-  --gold-light: #e8c97a;
-  --gold-dim: #8a6f32;
+  --gold-light: #f0d483;
+  --gold-dim: #a88840;
   --crimson: #8b1a2e;
   --crimson-light: #c0394f;
   --bg-deep: #0a0806;
   --bg-dark: #100d0a;
-  --bg-card: #16120e;
-  --bg-card-hover: #1e1812;
-  --bg-panel: #130f0c;
-  --border: rgba(201, 168, 76, 0.2);
-  --border-bright: rgba(201, 168, 76, 0.45);
-  --text-primary: #f0e6d0;
-  --text-secondary: #a89070;
-  --text-muted: #5c4d3a;
+  --bg-card: #1a1410;
+  --bg-card-hover: #221c15;
+  --bg-panel: #160f0a;
+  --border: rgba(201, 168, 76, 0.25);
+  --border-bright: rgba(201, 168, 76, 0.5);
+  --text-primary: #f5ead8;
+  --text-secondary: #c8a87a;
+  --text-muted: #7a6448;
   --parchment: #f5e6c8;
   --ink: #1a1208;
 }
