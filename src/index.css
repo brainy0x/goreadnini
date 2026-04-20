@@ -20,7 +20,7 @@
   --ink: #1a1208;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg-deep); color: var(--text-primary); font-family: 'Cormorant Garamond', Georgia, serif; min-height: 100vh; overflow-x: hidden; }
+body { background: var(--bg-deep); color: var(--text-primary); font-family: 'Cormorant Garamond', Georgia, serif; min-height: 100vh; overflow-x: hidden; font-size: 18px;}
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-deep); }
 ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
@@ -32,7 +32,7 @@ body::before { content: ''; position: fixed; inset: 0; background-image: radial-
 .sidebar-logo p { font-size: .75rem; color: var(--text-muted); font-style: italic; margin-top: .2rem; font-family: 'IM Fell English', serif; }
 .sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
 .nav-section-label { font-family: 'Cinzel', serif; font-size: .6rem; letter-spacing: .2em; color: var(--text-muted); padding: .75rem 1.5rem .4rem; text-transform: uppercase; }
-.nav-item { display: flex; align-items: center; gap: .75rem; padding: .6rem 1.5rem; color: var(--text-secondary); cursor: pointer; transition: all .2s ease; font-size: .95rem; border-left: 2px solid transparent; font-family: 'Cormorant Garamond', serif; font-weight: 500; letter-spacing: .03em; }
+.nav-item { display: flex; align-items: center; gap: .75rem; padding: .6rem 1.5rem; color: var(--text-secondary); cursor: pointer; transition: all .2s ease; font-size: .1rem; border-left: 2px solid transparent; font-family: 'Cormorant Garamond', serif; font-weight: 500; letter-spacing: .03em; }
 .nav-item:hover { color: var(--text-primary); background: rgba(201,168,76,.05); border-left-color: var(--gold-dim); }
 .nav-item.active { color: var(--gold-light); background: rgba(201,168,76,.08); border-left-color: var(--gold); }
 .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .8; }
