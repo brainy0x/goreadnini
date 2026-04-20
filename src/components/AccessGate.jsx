@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ACCESS_CODE = 'NINI2025' // Change this to whatever you want!
+const ACCESS_CODE = '092811' // Change this to whatever you want!
 
 export default function AccessGate({ onUnlock }) {
   const [code, setCode] = useState('')
