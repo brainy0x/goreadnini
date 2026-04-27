@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
-import { Upload, FileText, BookOpen } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
-import { supabase } from '../lib/supabase'
+import { saveFile } from '../lib/fileStorage'
 
 export default function UploadPage({ onRead }) {
   const { addBook } = useBooks()
@@ -10,66 +10,53 @@ export default function UploadPage({ onRead }) {
   const fileRef = useRef()
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [form, setForm] = useState({ title: '', author: '', shelf: 'reading' })
-
-  const isSupabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 
   const handleFile = async (file) => {
     if (!file) return
-    const isEpub = file.name.endsWith('.epub')
-    const isPdf = file.name.endsWith('.pdf')
+    const isEpub = file.name.toLowerCase().endsWith('.epub')
+    const isPdf  = file.name.toLowerCase().endsWith('.pdf')
     if (!isEpub && !isPdf) { toast('Please upload an .epub or .pdf file', 'error'); return }
 
-    // Extract title from filename
-    const autoTitle = file.name.replace(/\.(epub|pdf)$/, '').replace(/[-_]/g, ' ')
-    setForm(p => ({ ...p, title: p.title || autoTitle }))
-
+    const autoTitle = file.name.replace(/\.(epub|pdf)$/i, '').replace(/[-_]/g, ' ').trim()
     setUploading(true)
+    setProgress(10)
+
     try {
-      let bookData = {
-        title: form.title || autoTitle,
-        author: form.author,
-        shelf: form.shelf,
+      // Create the book entry first to get an ID
+      const bookData = {
+        title:     form.title.trim() || autoTitle,
+        author:    form.author.trim(),
+        shelf:     form.shelf,
         file_name: file.name,
         file_type: isEpub ? 'epub' : 'pdf',
+        has_file:  true,   // flag so modal shows Open Reader
       }
 
-      if (isSupabaseConfigured) {
-        // Upload to Supabase Storage
-        const userId = (await supabase.auth.getUser()).data.user?.id
-        if (userId) {
-          const path = `${userId}/${Date.now()}_${file.name}`
-          const { error } = await supabase.storage.from('epubs').upload(path, file)
-          if (!error) bookData.epub_path = path
-        }
-      } else {
-        // Store as base64 in localStorage (works for smaller files)
-        if (file.size < 20 * 1024 * 1024) { // <20MB
-          const reader = new FileReader()
-          reader.readAsDataURL(file)
-          bookData.file_data = await new Promise(res => { reader.onload = () => res(reader.result) })
-        } else {
-          toast('File too large for local storage. Please configure Supabase for larger files.', 'error')
-          setUploading(false)
-          return
-        }
-      }
-
+      setProgress(30)
       const book = await addBook(bookData)
-      toast(`"${bookData.title}" added and ready to read ✦`, 'success')
+      setProgress(60)
 
-      if (isEpub && book) onRead(book)
+      // Save actual file bytes to IndexedDB (no size limit, persists forever)
+      await saveFile(book.id, file)
+      setProgress(100)
+
+      toast(`"${bookData.title}" added ✦`, 'success')
+      setForm({ title: '', author: '', shelf: 'reading' })
+
+      if (isEpub) onRead(book)
+
     } catch (e) {
       console.error(e)
-      toast('Upload failed. Please try again.', 'error')
+      toast('Upload failed — ' + e.message, 'error')
     }
+
     setUploading(false)
+    setProgress(0)
   }
 
-  const onDrop = (e) => {
-    e.preventDefault(); setDragging(false)
-    handleFile(e.dataTransfer.files[0])
-  }
+  const onDrop = (e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]) }
 
   return (
     <div>
@@ -80,21 +67,21 @@ export default function UploadPage({ onRead }) {
         </div>
       </div>
 
-      <div className="page-body" style={{ maxWidth: 600 }}>
-        {/* Form */}
+      <div className="page-body" style={{ maxWidth: 580 }}>
+        {/* Details form */}
         <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', textTransform: 'uppercase', marginBottom: '1rem' }}>Book Details (Optional)</div>
+          <div className="form-label" style={{ marginBottom: '1rem', display: 'block' }}>Book Details (optional — auto-fills from filename)</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
+            <div className="form-group" style={{ gridColumn: '1/-1', margin: 0 }}>
               <label className="form-label">Title</label>
-              <input className="input" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Will auto-detect from filename" />
+              <input className="input" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Auto-detected from filename" />
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Author</label>
               <input className="input" value={form.author} onChange={e => setForm(p => ({ ...p, author: e.target.value }))} placeholder="Author name" />
             </div>
-            <div className="form-group">
-              <label className="form-label">Add to Shelf</label>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Shelf</label>
               <select className="select" value={form.shelf} onChange={e => setForm(p => ({ ...p, shelf: e.target.value }))}>
                 <option value="reading">Currently Reading</option>
                 <option value="finished">Finished</option>
@@ -110,45 +97,51 @@ export default function UploadPage({ onRead }) {
           onDragOver={e => { e.preventDefault(); setDragging(true) }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          onClick={() => fileRef.current?.click()}
+          onClick={() => !uploading && fileRef.current?.click()}
           style={{
             border: `2px dashed ${dragging ? 'var(--gold)' : 'var(--border)'}`,
             borderRadius: 8,
             padding: '3rem 2rem',
             textAlign: 'center',
-            cursor: 'pointer',
-            background: dragging ? 'rgba(201,168,76,0.05)' : 'transparent',
+            cursor: uploading ? 'default' : 'pointer',
+            background: dragging ? 'rgba(212,168,67,0.05)' : 'transparent',
             transition: 'all 0.2s',
           }}
         >
           <input ref={fileRef} type="file" accept=".epub,.pdf" style={{ display: 'none' }} onChange={e => handleFile(e.target.files[0])} />
 
           {uploading ? (
-            <div style={{ color: 'var(--text-secondary)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⏳</div>
-              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.9rem', color: 'var(--gold)', letterSpacing: '0.06em' }}>
-                Adding to your library...
+            <div>
+              <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📚</div>
+              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.9rem', color: 'var(--gold)', letterSpacing: '0.06em', marginBottom: '1rem' }}>
+                Storing your book...
+              </div>
+              <div style={{ height: 4, background: 'var(--bg-card)', borderRadius: 2, overflow: 'hidden', maxWidth: 200, margin: '0 auto' }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--crimson), var(--gold))', borderRadius: 2, transition: 'width 0.3s' }} />
               </div>
             </div>
           ) : (
             <div>
-              <Upload size={40} style={{ color: 'var(--gold-dim)', opacity: 0.5, margin: '0 auto 1rem' }} />
-              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.4rem', letterSpacing: '0.04em' }}>
-                Drop your ebook here
+              <Upload size={38} style={{ color: 'var(--gold-dim)', opacity: 0.5, margin: '0 auto 1rem', display: 'block' }} />
+              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+                Tap to choose a file
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                or click to browse • .epub and .pdf supported
+                .epub and .pdf • stored locally, no account needed
               </div>
             </div>
           )}
         </div>
 
-        {/* Notes */}
-        <div style={{ marginTop: '1.5rem', padding: '1rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.1em', color: 'var(--gold-dim)', marginBottom: '0.5rem' }}>Notes</div>
-          <p>• <strong style={{ color: 'var(--text-secondary)' }}>ePub files</strong> open directly in the built-in reader with highlighting and bookmarks.</p>
-          <p>• <strong style={{ color: 'var(--text-secondary)' }}>PDF files</strong> will be stored in your library. Reader support coming soon.</p>
-          {!isSupabaseConfigured && <p>• Without Supabase configured, files under 20MB are stored in your browser. Configure Supabase for cloud storage.</p>}
+        {/* Info box */}
+        <div style={{ marginTop: '1.25rem', padding: '1rem 1.25rem', border: '1px solid var(--border)', borderRadius: 6, lineHeight: 1.7 }}>
+          <div className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>How file storage works</div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            📱 Files are saved in your browser's <strong>IndexedDB</strong> — no size limit, no account needed, and they survive page refreshes.
+          </p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+            They are tied to <em>this browser on this device</em>. To read on another device, upload the file again there.
+          </p>
         </div>
       </div>
     </div>
