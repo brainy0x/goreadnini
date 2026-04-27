@@ -18,18 +18,37 @@ import WrappedPage from './pages/WrappedPage'
 const ACCESS_CODE_KEY = 'grn_access'
 
 function AppShell() {
-  const [page, setPage] = useState('shelf')
+  const [page, setPage]               = useState('shelf')
   const [readingBook, setReadingBook] = useState(null)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile]       = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768
+  )
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    const onResize = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (!mobile) setSidebarOpen(false)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  const navigate = (p) => { setPage(p); setMobileOpen(false) }
+  // Lock body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobile && sidebarOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [isMobile, sidebarOpen])
+
+  const navigate = (p) => {
+    setPage(p)
+    setSidebarOpen(false)
+  }
 
   const renderPage = () => {
     switch (page) {
@@ -48,17 +67,81 @@ function AppShell() {
 
   return (
     <div className="app-shell">
-      {readingBook && <EpubReader book={readingBook} onClose={() => setReadingBook(null)} />}
-      <Sidebar activePage={page} onNavigate={navigate} isMobile={isMobile} isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <main className="main-content">
+      {readingBook && (
+        <EpubReader book={readingBook} onClose={() => setReadingBook(null)} />
+      )}
+
+      {/* Sidebar + backdrop */}
+      <Sidebar
+        activePage={page}
+        onNavigate={navigate}
+        isMobile={isMobile}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Touch-blocking backdrop — sits ABOVE main content, below sidebar */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            zIndex: 98,        // sidebar is 100, this is 98
+            touchAction: 'none',
+            WebkitOverflowScrolling: 'unset',
+          }}
+        />
+      )}
+
+      <main
+        className="main-content"
+        style={isMobile && sidebarOpen
+          ? { pointerEvents: 'none', userSelect: 'none' }
+          : undefined
+        }
+      >
+        {/* Mobile top bar */}
         {isMobile && (
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-panel)', position: 'sticky', top: 0, zIndex: 50 }}>
-            <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1rem', color: 'var(--gold-light)', letterSpacing: '0.06em' }}>📚 GoreadNini</span>
-            <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '0.3rem' }}>
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          <div style={{
+            padding: '0.7rem 1rem',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--bg-panel)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 50,
+          }}>
+            <span style={{
+              fontFamily: 'Cinzel, serif',
+              fontSize: '1rem',
+              color: 'var(--gold-light)',
+              letterSpacing: '0.06em',
+            }}>
+              📚 GoreadNini
+            </span>
+            <button
+              onClick={() => setSidebarOpen(o => !o)}
+              style={{
+                background: 'none',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                padding: '0.35rem 0.45rem',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              aria-label="Toggle menu"
+            >
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         )}
+
         {renderPage()}
       </main>
     </div>
@@ -66,7 +149,9 @@ function AppShell() {
 }
 
 export default function App() {
-  const [unlocked, setUnlocked] = useState(() => localStorage.getItem(ACCESS_CODE_KEY) === 'true')
+  const [unlocked, setUnlocked] = useState(
+    () => localStorage.getItem(ACCESS_CODE_KEY) === 'true'
+  )
 
   if (!unlocked) {
     return (
