@@ -741,3 +741,95 @@ textarea.input { resize: vertical; min-height: 80px; }
   .page-body { padding: 1.25rem 1rem; }
   .books-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
 }
+
+
+/* ══════════════════════════════════════════════
+   MOBILE RESPONSIVE — paste at the END of index.css
+   replacing the existing @media block
+   ══════════════════════════════════════════════ */
+
+/* Hamburger button — mobile only */
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: .85rem;
+  left: .85rem;
+  z-index: 200;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .45rem .55rem;
+  cursor: pointer;
+  color: var(--gold-light);
+}
+
+@media (max-width: 768px) {
+  .menu-toggle { display: flex; align-items: center; justify-content: center; }
+
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 4px 0 30px rgba(0,0,0,.6);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .main-content {
+    margin-left: 0;
+    padding-top: 0;
+  }
+
+  .page-header {
+    padding: 1rem 1rem .85rem;
+    padding-left: 3.5rem; /* space for hamburger */
+    flex-wrap: wrap;
+    gap: .75rem;
+  }
+
+  .page-title { font-size: 1.45rem; }
+  .page-subtitle { font-size: .88rem; }
+
+  .page-body {
+    padding: 1.25rem 1rem;
+  }
+
+  .books-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 1rem;
+  }
+
+  /* Stats grid → 2 cols on mobile */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Modal full-screen on mobile */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 92vh;
+  }
+  .modal-wide { max-width: 100%; }
+
+  /* Badge grid */
+  .badge-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+
+  /* Heatmap scrollable on mobile */
+  .heatmap-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: .5rem; }
+
+  /* Hide text labels in reader toolbar on small screens */
+  .reader-hide-mobile { display: none !important; }
+
+  /* Tabs scrollable */
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab { white-space: nowrap; }
+
+  /* Form grids → single column */
+  .modal-body [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .books-grid { grid-template-columns: repeat(2, 1fr); }
+  .page-title { font-size: 1.25rem; }
+}
