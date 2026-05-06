@@ -17,10 +17,14 @@ export async function saveFile(bookId, file) {
 }
 
 export async function getFile(filePath) {
+  if (!filePath) throw new Error('filePath is required')
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .download(filePath)
-  if (error) throw error
+  if (error) {
+    const msg = error.message || JSON.stringify(error)
+    throw new Error(`Supabase download failed: ${msg}`)
+  }
   // Assuming filePath is like 'bookId/filename.ext'
   const name = filePath.split('/')[1]
   const type = name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/epub+zip'

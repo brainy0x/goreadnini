@@ -24,8 +24,8 @@ export default function BookDetailModal({ book, onClose, onRead }) {
   const [quoteText, setQuoteText] = useState('')
   const [savingQuote, setSavingQuote] = useState(false)
 
-  // Show Open Reader if book has an attached file (any method)
-  const hasFile = book.has_file || book.epub_path || book.file_data || book.file_name
+  // Show Open Reader if book has an attached file
+  const hasFile = book.has_file || book.file_path || book.epub_path || book.file_data || book.file_name
 
   const handleSave = async () => {
     await updateBook(book.id, form)
@@ -36,9 +36,9 @@ export default function BookDetailModal({ book, onClose, onRead }) {
   const handleDelete = async () => {
     if (!confirm(`Remove "${book.title}" from your library?`)) return
     await deleteBook(book.id)
-    // Also remove file from IndexedDB if present
-    if (hasFile) {
-      try { await deleteFile(book.id) } catch {}
+    // Also remove file from Supabase Storage if present
+    if (book.file_path) {
+      try { await deleteFile(book.file_path) } catch (e) { console.error('Failed to delete file from storage:', e) }
     }
     toast('Book removed')
     onClose()

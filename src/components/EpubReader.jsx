@@ -53,61 +53,73 @@ export default function EpubReader({ book, onClose }) {
     const fileType = book.file_type || (book.file_name?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'epub')
 
     const loadFile = async () => {
-      // Get file from Supabase Storage
-      const stored = await getFile(book.file_path)
-      if (!stored) {
-        setError('File not found in this browser. Please re-upload the file.')
+      // Validate that file_path exists
+      if (!book.file_path) {
+        setError('No file path found. This book may not have been fully uploaded.')
         setLoading(false)
         return
       }
 
-      const file = stored.file || stored
-      setFileBlob(file)
-
-      if (fileType === 'pdf') {
-        setIsPdf(true)
-        const url = URL.createObjectURL(file)
-        setPdfBlobUrl(url)
-        setLoading(false)
-        return
-      }
-
-      // ePub
-      let mounted = true
       try {
-        const Epub = (await import('epubjs')).default
-        const arrayBuffer = await file.arrayBuffer()
-        const eb = Epub(arrayBuffer)
-        bookRef.current = eb
+        // Get file from Supabase Storage
+        const stored = await getFile(book.file_path)
+        if (!stored) {
+          setError('File not found in Supabase Storage. Please re-upload the file.')
+          setLoading(false)
+          return
+        }
 
-        const r = eb.renderTo(viewerRef.current, { width: '100%', height: '100%', spread: 'none' })
-        renditionRef.current = r
-        applyTheme(r, 'light', 100)
+        const file = stored.file || stored
+        setFileBlob(file)
 
-        const saved = localStorage.getItem(`grn_loc_${book.id}`)
-        r.display(saved || undefined)
+        if (fileType === 'pdf') {
+          setIsPdf(true)
+          const url = URL.createObjectURL(file)
+          setPdfBlobUrl(url)
+          setLoading(false)
+          return
+        }
 
-        r.on('relocated', async (loc) => {
-          if (!mounted) return
-          const cfi = loc.start.cfi
-          setCurrentCfi(cfi)
-          localStorage.setItem(`grn_loc_${book.id}`, cfi)
-          try {
-            const pct = await eb.locations.percentageFromCfi(cfi)
-            const p = Math.round(pct * 100)
-            setProgress(p)
-            updateBook(book.id, { progress: p })
-          } catch {}
-        })
+        // ePub
+        let mounted = true
+        try {
+          const Epub = (await import('epubjs')).default
+          const arrayBuffer = await file.arrayBuffer()
+          const eb = Epub(arrayBuffer)
+          bookRef.current = eb
 
-        await eb.locations.generate(1024)
-        if (mounted) setLoading(false)
-      } catch (e) {
-        console.error(e)
-        if (mounted) { setError('Could not open this epub file.'); setLoading(false) }
+          const r = eb.renderTo(viewerRef.current, { width: '100%', height: '100%', spread: 'none' })
+          renditionRef.current = r
+          applyTheme(r, 'light', 100)
+
+          const saved = localStorage.getItem(`grn_loc_${book.id}`)
+          r.display(saved || undefined)
+
+          r.on('relocated', async (loc) => {
+            if (!mounted) return
+            const cfi = loc.start.cfi
+            setCurrentCfi(cfi)
+            localStorage.setItem(`grn_loc_${book.id}`, cfi)
+            try {
+              const pct = await eb.locations.percentageFromCfi(cfi)
+              const p = Math.round(pct * 100)
+              setProgress(p)
+              updateBook(book.id, { progress: p })
+            } catch {}
+          })
+
+          await eb.locations.generate(1024)
+          if (mounted) setLoading(false)
+        } catch (e) {
+          console.error('ePub render error:', e)
+          if (mounted) { setError('Could not open this epub file.'); setLoading(false) }
+        }
+      } catch (storageError) {
+        console.error('Supabase storage error:', storageError)
+        const msg = storageError?.message || JSON.stringify(storageError)
+        setError(`Failed to load from storage: ${msg}`)
+        setLoading(false)
       }
-
-      return () => { mounted = false }
     }
 
     loadFile()

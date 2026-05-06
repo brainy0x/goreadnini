@@ -48,14 +48,16 @@ export default function UploadPage({ onRead }) {
       await updateBook(book.id, { file_path: filePath })
       setProgress(100)
 
+      const updatedBook = { ...book, file_path: filePath }
       toast(`"${bookData.title}" added ✦`, 'success')
       setForm({ title: '', author: '', shelf: 'reading' })
 
-      if (isEpub) onRead(book)
+      if (isEpub) onRead(updatedBook)
 
     } catch (e) {
-      console.error(e)
-      toast('Upload failed — ' + e.message, 'error')
+      console.error('Upload error:', e)
+      const errorMessage = e?.message || (typeof e === 'string' ? e : JSON.stringify(e))
+      toast('Upload failed — ' + errorMessage, 'error')
     }
 
     setUploading(false)
