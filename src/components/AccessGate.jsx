@@ -1,42 +1,72 @@
 import { useState } from 'react'
-
-const ACCESS_CODE = '092811' // Change this to whatever you want!
+import { db } from '../lib/firebaseConfig'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 
 export default function AccessGate({ onUnlock }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [shaking, setShaking] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [isUnlocked, setIsUnlocked] = useState(false) // For the fade-out effect
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (code.trim().toUpperCase() === ACCESS_CODE) {
-      localStorage.setItem('grn_access', 'true')
-      onUnlock()
-    } else {
-      setError('The realm does not recognise this key. Try again.')
-      setShaking(true)
-      setTimeout(() => setShaking(false), 500)
-      setCode('')
+    if (!code.trim() || loading) return
+    
+    setLoading(true)
+    try {
+      const codesRef = collection(db, "access_codes");
+      const q = query(codesRef, where("code", "==", code.trim()));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        setIsUnlocked(true) // Start exit animation
+        localStorage.setItem('grn_access', 'true')
+        setTimeout(() => onUnlock(), 800) // Delay actual unlock to show animation
+      } else {
+        setError('The realm does not recognise this key. Try again.')
+        setShaking(true)
+        setTimeout(() => setShaking(false), 500)
+        setCode('')
+      }
+    } catch (err) {
+      console.error("Auth Error:", err)
+      setError("The gates are heavy today. (Check connection)")
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="access-gate">
-      <div className="access-panel" style={{ animation: shaking ? 'shake 0.4s ease' : 'none' }}>
+    <div className={`access-gate ${isUnlocked ? 'gate-exit' : ''}`}>
+      <div className="access-panel" style={{ 
+        animation: shaking ? 'shake 0.4s ease' : isUnlocked ? 'fadeOut 0.8s forwards' : 'none' 
+      }}>
         <style>{`
           @keyframes shake {
             0%,100%{transform:translateX(0)}
             25%{transform:translateX(-8px)}
             75%{transform:translateX(8px)}
           }
-          .flicker {
-            animation: flicker 3s infinite;
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.98); }
           }
+          @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+          }
+          .flicker { animation: flicker 3s infinite; }
           @keyframes flicker {
             0%,90%,100%{opacity:1}
             92%{opacity:0.6}
             95%{opacity:1}
             97%{opacity:0.7}
+          }
+          .loading-text {
+            animation: pulse 1.5s infinite ease-in-out;
+            color: var(--gold-bright);
+            font-style: italic;
           }
         `}</style>
 
@@ -64,12 +94,24 @@ export default function AccessGate({ onUnlock }) {
               onChange={e => { setCode(e.target.value); setError('') }}
               placeholder="Your secret key..."
               autoFocus
+              disabled={loading || isUnlocked}
               style={{ textAlign: 'center', letterSpacing: '0.2em', fontSize: '1.1rem' }}
             />
           </div>
           {error && <p className="access-error">{error}</p>}
-          <button className="btn btn-primary" type="submit" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
-            Enter the Library
+          <button 
+            className="btn btn-primary" 
+            type="submit" 
+            disabled={loading || isUnlocked}
+            style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
+          >
+            {loading ? (
+              <span className="loading-text">Unlocking the scrolls...</span>
+            ) : isUnlocked ? (
+              "Welcome home..."
+            ) : (
+              "Enter the Library"
+            )}
           </button>
         </form>
 
