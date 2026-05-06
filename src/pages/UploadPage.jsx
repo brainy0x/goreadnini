@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { saveFile } from '../lib/fileStorage'
+import { isConfigured as supabaseConfigured } from '../lib/supabase'
 
 export default function UploadPage({ onRead }) {
   const { addBook, updateBook } = useBooks()
@@ -15,6 +16,10 @@ export default function UploadPage({ onRead }) {
 
   const handleFile = async (file) => {
     if (!file) return
+    if (!supabaseConfigured) {
+      toast('Supabase storage not configured. Please set up your Supabase project and update the credentials in supabase.js', 'error')
+      return
+    }
     const isEpub = file.name.toLowerCase().endsWith('.epub')
     const isPdf  = file.name.toLowerCase().endsWith('.pdf')
     if (!isEpub && !isPdf) { toast('Please upload an .epub or .pdf file', 'error'); return }
