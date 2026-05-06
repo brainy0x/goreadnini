@@ -45,7 +45,9 @@ export default function UploadPage({ onRead }) {
 
       // Save actual file bytes to Supabase Storage
       const filePath = await saveFile(book.id, file)
+      console.log('[UploadPage] File uploaded to Supabase:', filePath)
       await updateBook(book.id, { file_path: filePath })
+      console.log('[UploadPage] Firestore updated with file_path')
       setProgress(100)
 
       const updatedBook = { ...book, file_path: filePath }

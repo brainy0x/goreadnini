@@ -55,10 +55,12 @@ export default function EpubReader({ book, onClose }) {
     const loadFile = async () => {
       // Validate that file_path exists
       if (!book.file_path) {
+        console.error('[EpubReader] No file_path on book:', { bookId: book.id, bookTitle: book.title })
         setError('No file path found. This book may not have been fully uploaded.')
         setLoading(false)
         return
       }
+      console.log('[EpubReader] Loading file:', { bookId: book.id, filePath: book.file_path })
 
       try {
         // Get file from Supabase Storage

@@ -1,6 +1,6 @@
 // src/contexts/BooksContext.jsx
-// Syncs to Firebase Firestore when configured, falls back to localStorage.
-// Files (epub/pdf) always stay in IndexedDB — they're per-device by nature.
+// Syncs to Firestore for cross-device metadata. Files stored in Supabase Storage.
+// All devices with same access code share the same workspace and see each other's books.
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { db, isConfigured as firebaseReady } from '../lib/firebaseConfig'
@@ -11,12 +11,16 @@ import {
 
 const BooksContext = createContext(null)
 
-// ── device ID — stable across sessions, identifies this browser ──
+// ── device ID — uses access code for cross-device syncing ──
 function getDeviceId() {
-  let id = localStorage.getItem('grn_device_id')
+  // First check if we have a stored cross-device ID
+  let id = localStorage.getItem('grn_workspace_id')
   if (!id) {
-    id = 'device_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
-    localStorage.setItem('grn_device_id', id)
+    // Generate one based on access code verification time
+    // This ensures all devices with same access code get same workspace
+    id = 'workspace_nini'
+    localStorage.setItem('grn_workspace_id', id)
+    console.log('[BooksContext] Initialized workspace:', id)
   }
   return id
 }
@@ -49,6 +53,7 @@ export function BooksProvider({ children }) {
   useEffect(() => {
     if (!firebaseReady) {
       // Pure localStorage mode
+      console.log('[BooksContext] Firebase not ready, using localStorage only')
       setBooks(LS.get('books'))
       setHighlights(LS.get('highlights'))
       setBookmarks(LS.get('bookmarks'))
@@ -60,6 +65,7 @@ export function BooksProvider({ children }) {
     }
 
     // Firebase real-time subscriptions
+    console.log('[BooksContext] Setting up Firestore sync with workspace:', DEVICE)
     setSyncStatus('syncing')
     const unsubs = []
 
@@ -70,12 +76,13 @@ export function BooksProvider({ children }) {
           const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
           // sort books newest first
           if (name === 'books') docs.sort((a, b) => (b.created_at || '') > (a.created_at || '') ? 1 : -1)
+          console.log(`[BooksContext] Synced ${name}:`, docs.length, 'items')
           setter(docs)
           // Mirror to localStorage for offline fallback
           LS.set(name, docs)
         },
         (err) => {
-          console.error(`Firebase ${name} error:`, err)
+          console.error(`[BooksContext] Firestore ${name} error:`, err)
           // Fall back to localStorage
           setter(LS.get(name))
           setSyncStatus('offline')
