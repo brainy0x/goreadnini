@@ -53,8 +53,8 @@ export default function EpubReader({ book, onClose }) {
     const fileType = book.file_type || (book.file_name?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'epub')
 
     const loadFile = async () => {
-      // Get file from IndexedDB
-      const stored = await getFile(book.id)
+      // Get file from Supabase Storage
+      const stored = await getFile(book.file_path)
       if (!stored) {
         setError('File not found in this browser. Please re-upload the file.')
         setLoading(false)

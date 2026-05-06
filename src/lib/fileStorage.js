@@ -1,47 +1,35 @@
-// fileStorage.js — IndexedDB wrapper for epub/pdf files
-// No size limits, persists across sessions, works on all devices
+// fileStorage.js — Supabase Storage wrapper for epub/pdf files
 
-const DB_NAME = 'GoreadNini'
-const DB_VERSION = 1
-const STORE = 'bookFiles'
+import { supabase } from './supabase'
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION)
-    req.onupgradeneeded = (e) => {
-      e.target.result.createObjectStore(STORE)
-    }
-    req.onsuccess = (e) => resolve(e.target.result)
-    req.onerror = () => reject(req.error)
-  })
-}
+const BUCKET = 'epubs'
 
 export async function saveFile(bookId, file) {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite')
-    tx.objectStore(STORE).put({ file, name: file.name, type: file.type }, bookId)
-    tx.oncomplete = () => resolve(true)
-    tx.onerror = () => reject(tx.error)
-  })
+  const filePath = `${bookId}/${file.name}`
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
+  if (error) throw error
+  return filePath
 }
 
-export async function getFile(bookId) {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly')
-    const req = tx.objectStore(STORE).get(bookId)
-    req.onsuccess = () => resolve(req.result || null)
-    req.onerror = () => reject(req.error)
-  })
+export async function getFile(filePath) {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .download(filePath)
+  if (error) throw error
+  // Assuming filePath is like 'bookId/filename.ext'
+  const name = filePath.split('/')[1]
+  const type = name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/epub+zip'
+  return { file: data, name, type }
 }
 
-export async function deleteFile(bookId) {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite')
-    tx.objectStore(STORE).delete(bookId)
-    tx.oncomplete = () => resolve(true)
-    tx.onerror = () => reject(tx.error)
-  })
+export async function deleteFile(filePath) {
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .remove([filePath])
+  if (error) throw error
 }

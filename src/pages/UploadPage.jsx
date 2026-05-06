@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext'
 import { saveFile } from '../lib/fileStorage'
 
 export default function UploadPage({ onRead }) {
-  const { addBook } = useBooks()
+  const { addBook, updateBook } = useBooks()
   const toast = useToast()
   const fileRef = useRef()
   const [dragging, setDragging] = useState(false)
@@ -38,8 +38,9 @@ export default function UploadPage({ onRead }) {
       const book = await addBook(bookData)
       setProgress(60)
 
-      // Save actual file bytes to IndexedDB (no size limit, persists forever)
-      await saveFile(book.id, file)
+      // Save actual file bytes to Supabase Storage
+      const filePath = await saveFile(book.id, file)
+      await updateBook(book.id, { file_path: filePath })
       setProgress(100)
 
       toast(`"${bookData.title}" added ✦`, 'success')
@@ -137,10 +138,10 @@ export default function UploadPage({ onRead }) {
         <div style={{ marginTop: '1.25rem', padding: '1rem 1.25rem', border: '1px solid var(--border)', borderRadius: 6, lineHeight: 1.7 }}>
           <div className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>How file storage works</div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            📱 Files are saved in your browser's <strong>IndexedDB</strong> — no size limit, no account needed, and they survive page refreshes.
+            📱 Files are uploaded to <strong>Supabase Storage</strong> — secure cloud storage with no size limit.
           </p>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-            They are tied to <em>this browser on this device</em>. To read on another device, upload the file again there.
+            They are accessible from any device with your account. No need to re-upload on different devices.
           </p>
         </div>
       </div>
