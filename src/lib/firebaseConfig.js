@@ -27,23 +27,22 @@
 //
 // ─────────────────────────────────────────────────────────────
 
-import { initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-}
+  apiKey: "AIzaSyAzJ_DBL8QC3kvaKEaKeyLugeHqT-Zy3ag",
+  authDomain: "goreadnini.firebaseapp.com",
+  projectId: "goreadnini",
+  storageBucket: "goreadnini.firebasestorage.app",
+  messagingSenderId: "1028151963743",
+  appId: "1:1028151963743:web:34f945c496c4878629abea"
+};
 
-const isConfigured = Boolean(
-  firebaseConfig.apiKey &&
-  firebaseConfig.projectId
-)
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-export const db = isConfigured
-  ? getFirestore(initializeApp(firebaseConfig))
-  : null
+// Initialize Firestore and export it
+export const db = getFirestore(app);
+export const isConfigured = true;
 
-export { isConfigured }
