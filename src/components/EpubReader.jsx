@@ -73,10 +73,10 @@ export default function EpubReader({ book, onClose }) {
       try {
         setLoadMsg('Loading file...')
 
-        // Get file from IndexedDB
-        const stored = await getFile(book.id)
+        // Get file from Supabase Storage
+        const stored = await getFile(book.file_path)
         if (!stored) {
-          throw new Error('File not found in this browser. Please re-upload the file on this device.')
+          throw new Error('File not found in Supabase Storage. Please re-upload the file.')
         }
         const file = stored.file instanceof File ? stored.file : stored
         if (!(file instanceof Blob)) throw new Error('Stored file is corrupted. Please re-upload.')

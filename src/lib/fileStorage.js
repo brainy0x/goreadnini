@@ -24,12 +24,24 @@ export async function saveFile(bookId, file) {
 export async function getFile(filePath) {
   if (!filePath) throw new Error('filePath is required')
   console.log(`[Supabase] Attempting to download: ${BUCKET}/${filePath}`)
+
+  // Check if filePath looks like a proper path (should contain '/')
+  if (!filePath.includes('/')) {
+    throw new Error(`Invalid file path format: "${filePath}". Expected format: "bookId/filename.ext". This file may not have been uploaded correctly. Please re-upload the file.`)
+  }
+
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .download(filePath)
   if (error) {
     const msg = error.message || JSON.stringify(error)
     console.error(`[Supabase] Download failed for ${filePath}:`, error)
+
+    // Provide more helpful error messages
+    if (msg.includes('Object not found')) {
+      throw new Error(`File not found in Supabase Storage. The file "${filePath}" does not exist. Please re-upload the file.`)
+    }
+
     throw new Error(`Supabase download failed for "${filePath}": ${msg}`)
   }
   console.log(`[Supabase] Successfully downloaded ${filePath}, size: ${data.size} bytes`)
