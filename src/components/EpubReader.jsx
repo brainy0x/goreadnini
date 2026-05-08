@@ -101,13 +101,17 @@ export default function EpubReader({ book, onClose }) {
         // ── EPUB path ─────────────────────────────────────────
         setLoadMsg('Parsing epub...')
 
-        // Convert File → Object URL (epubjs works reliably with blob: URLs)
-        const epubBlobUrl = URL.createObjectURL(
-          new Blob([await file.arrayBuffer()], { type: 'application/epub+zip' })
-        )
-        blobUrlRef.current = epubBlobUrl
+        // Convert EPUB file to raw bytes and parse with epubjs directly
+        const epubBytes = await file.arrayBuffer()
 
-        // Dynamic import — get the constructor correctly regardless of export shape
+        // Optional validation: ensure this looks like a ZIP-based EPUB
+        const header = new Uint8Array(epubBytes.slice(0, 4))
+        const isZip = header[0] === 0x50 && header[1] === 0x4B
+        console.log('[EpubReader] EPUB header ZIP check:', isZip)
+        if (!isZip) {
+          throw new Error('Downloaded file does not appear to be a valid EPUB package.')
+        }
+
         setLoadMsg('Starting reader...')
         const epubModule = await import('epubjs')
         const ePub = epubModule.default ?? epubModule.ePub ?? epubModule
@@ -116,7 +120,7 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
-        const eb = ePub(epubBlobUrl)
+        const eb = await ePub(epubBytes)
         bookRef.current = eb
 
         // Wait for book metadata to be ready
