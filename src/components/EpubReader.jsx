@@ -100,18 +100,9 @@ export default function EpubReader({ book, onClose }) {
 
       // ... (PDF check above remains the same)
 
-        // ── EPUB path ─────────────────────────────────────────
-        setLoadMsg('Parsing epub...')
-
-        const epubBytes = await file.arrayBuffer()
-
-        const header = new Uint8Array(epubBytes.slice(0, 4))
-        const isZip = header[0] === 0x50 && header[1] === 0x4B
-        if (!isZip) {
-          throw new Error('Downloaded file does not appear to be a valid EPUB package.')
-        }
-
+       // ── EPUB path ─────────────────────────────────────────
         setLoadMsg('Starting reader...')
+        
         const epubModule = await import('epubjs')
         const ePub = epubModule.default ?? epubModule.ePub ?? epubModule
 
@@ -119,20 +110,23 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
-        // 1. Initialize the empty book instance (synchronous)
-        const eb = ePub()
+        // 1. Create a local Object URL for the EPUB Blob (just like your PDF logic)
+        const url = URL.createObjectURL(file)
+        
+        // 2. Save it to your ref so it gets cleaned up when the component unmounts
+        blobUrlRef.current = url 
+
+        // 3. Initialize the book directly with the URL
+        const eb = ePub(url)
         bookRef.current = eb
 
-        // 2. Explicitly open the ArrayBuffer as binary data
-        await eb.open(epubBytes, 'binary')
-
-        // 3. Wait for the book's metadata and structure to be fully parsed
+        // 4. Wait for the book's metadata and structure to be ready
         await eb.ready
 
         if (!mounted || !viewerRef.current) return
 
         setLoadMsg('Rendering...')
-
+    
         // ... (renderTo and applyTheme remain exactly the same)
 
         // renderTo must happen AFTER eb.ready
