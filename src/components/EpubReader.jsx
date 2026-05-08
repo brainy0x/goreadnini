@@ -179,7 +179,7 @@ export default function EpubReader({ book, onClose }) {
       if (bookRef.current)  { try { bookRef.current.destroy() } catch {} }
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
     }
-  }, [book.id])
+  }, [book.id, book.file_path, book.file_name, book.file_type])
 
   // ── Theme / font changes ──────────────────────────────────────
   const changeTheme = (t) => {
