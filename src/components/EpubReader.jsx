@@ -104,6 +104,7 @@ export default function EpubReader({ book, onClose }) {
 
         // 1. Get the raw ArrayBuffer from Supabase
         const buffer = await file.arrayBuffer()
+        console.log('[EpubReader] ArrayBuffer ready, size:', buffer.byteLength)
 
         setLoadMsg('Starting reader...')
         const epubModule = await import('epubjs')
@@ -113,18 +114,23 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
+        console.log('[EpubReader] Creating epub instance with buffer (binary mode)')
         // 2. Pass the buffer AND explicitly tell epub.js it is binary data.
-        // This bypasses the buggy instanceof check and prevents your React
-        // router from serving index.html in the background.
         const eb = ePub(buffer, { encoding: 'binary' })
         bookRef.current = eb
+        console.log('[EpubReader] epub instance created, waiting for ready...')
 
         // 3. Wait for the book's metadata and structure to be parsed
         await eb.ready
+        console.log('[EpubReader] EPUB ready, manifest loaded')
 
-        if (!mounted || !viewerRef.current) return
+        if (!mounted || !viewerRef.current) {
+          console.log('[EpubReader] Component unmounted or viewer ref missing')
+          return
+        }
 
         setLoadMsg('Rendering...')
+        console.log('[EpubReader] Calling renderTo on viewer...')
 
         // renderTo must happen AFTER eb.ready
         const r = eb.renderTo(viewerRef.current, {
@@ -136,15 +142,16 @@ export default function EpubReader({ book, onClose }) {
           allowScriptedContent: false,
         })
         renditionRef.current = r
-        
-        // ... rest of the code remains the same
+        console.log('[EpubReader] renderTo complete, applying theme...')
 
         // Apply visual theme before display
         applyTheme(r, 'light', 100)
 
         // Restore last position or go to start
         const saved = localStorage.getItem(`grn_loc_${book.id}`)
+        console.log('[EpubReader] Displaying EPUB at position:', saved || 'start')
         await r.display(saved || undefined)
+        console.log('[EpubReader] EPUB displayed successfully')
 
         // Track location changes
         r.on('relocated', async (loc) => {
@@ -163,6 +170,7 @@ export default function EpubReader({ book, onClose }) {
         // Generate locations for progress % (non-blocking)
         eb.locations.generate(1024).catch(() => {})
 
+        console.log('[EpubReader] Initialization complete, hiding loader')
         if (mounted) setLoading(false)
 
       } catch (e) {
