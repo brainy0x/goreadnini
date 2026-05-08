@@ -82,33 +82,41 @@ export default function EpubReader({ book, onClose }) {
           return
         }
 
-        // ePub
+               // ePub
         let mounted = true
         try {
           console.log('[EpubReader] Attempting to parse epub file, size:', file.size, 'bytes')
-          const Epub = (await import('epubjs')).default
+          
+          const epubModule = await import('epubjs')
+          const ePub = epubModule.default || epubModule
           const arrayBuffer = await file.arrayBuffer()
-          console.log('[EpubReader] ArrayBuffer created, size:', arrayBuffer.byteLength)
 
-          // Basic validation - check if it looks like an epub
+          // Basic validation
           const firstBytes = new Uint8Array(arrayBuffer.slice(0, 4))
-          const isZipFile = firstBytes[0] === 0x50 && firstBytes[1] === 0x4B // PK (ZIP header)
-          console.log('[EpubReader] File header check - is ZIP format:', isZipFile)
+          const isZipFile = firstBytes[0] === 0x50 && firstBytes[1] === 0x4B 
+          if (!isZipFile) throw new Error('File is not a valid ZIP/EPUB')
 
-          if (!isZipFile) {
-            throw new Error('File does not appear to be a valid EPUB (not a ZIP file)')
-          }
-
-          const eb = await Epub(arrayBuffer)
-          console.log('[EpubReader] Epub object created')
+          // FIX: Initialize the book (no await) and wait for it to be ready
+          const eb = ePub(arrayBuffer)
           bookRef.current = eb
+          await eb.ready 
 
-          const r = eb.renderTo(viewerRef.current, { width: '100%', height: '100%', spread: 'none' })
+          if (!mounted || !viewerRef.current) return
+
+          // Render the book
+          const r = eb.renderTo(viewerRef.current, { 
+            width: '100%', 
+            height: '100%', 
+            spread: 'none',
+            manager: 'default',
+            flow: 'paginated'
+          })
+          
           renditionRef.current = r
-          applyTheme(r, 'light', 100)
+          applyTheme(r, theme, fontSize)
 
           const saved = localStorage.getItem(`grn_loc_${book.id}`)
-          r.display(saved || undefined)
+          await r.display(saved || undefined)
 
           r.on('relocated', async (loc) => {
             if (!mounted) return
@@ -127,22 +135,23 @@ export default function EpubReader({ book, onClose }) {
           if (mounted) setLoading(false)
         } catch (e) {
           console.error('ePub render error:', e)
-          const errorMsg = e?.message || 'Unknown epub parsing error'
           if (mounted) {
-            setError(`Could not open this epub file: ${errorMsg}. The file may be corrupted, not a valid EPUB, or was not uploaded correctly.`)
+            setError(`Could not open this epub file: ${e.message}.`)
             setLoading(false)
           }
         }
       } catch (storageError) {
         console.error('Supabase storage error:', storageError)
-        const msg = storageError?.message || JSON.stringify(storageError)
-        setError(`Failed to load from storage: ${msg}`)
+        setError(`Failed to load from storage: ${storageError.message || 'Unknown storage error'}`)
         setLoading(false)
       }
     }
 
     loadFile()
-    return () => { bookRef.current?.destroy() }
+    return () => { 
+      mounted = false
+      if (bookRef.current) bookRef.current.destroy() 
+    }
   }, [book.id])
 
   // Cleanup blob URL on unmount
