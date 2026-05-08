@@ -897,8 +897,6 @@ textarea.input { resize: vertical; min-height: 80px; }
     font-size: .55rem !important;
   }
 }
-}
-}
 
 @media (max-width: 380px) {
   .books-grid { grid-template-columns: repeat(2, 1fr); }
