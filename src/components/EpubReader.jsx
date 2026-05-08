@@ -99,18 +99,11 @@ export default function EpubReader({ book, onClose }) {
         }
 
       // ... (PDF check above remains the same)
-// ── EPUB path ─────────────────────────────────────────
+      // ── EPUB path ─────────────────────────────────────────
         setLoadMsg('Parsing epub...')
 
-        // 1. Force the Supabase stream into a complete local memory buffer
+        // 1. Get the raw ArrayBuffer from Supabase
         const buffer = await file.arrayBuffer()
-        
-        // 2. Reconstruct a clean, local Blob exactly like your old code did
-        const cleanBlob = new Blob([buffer], { type: 'application/epub+zip' })
-        
-        // 3. Create the Object URL from the clean local Blob
-        const epubBlobUrl = URL.createObjectURL(cleanBlob)
-        blobUrlRef.current = epubBlobUrl
 
         setLoadMsg('Starting reader...')
         const epubModule = await import('epubjs')
@@ -120,11 +113,13 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
-        // 4. Initialize synchronously just like the old code
-        const eb = ePub(epubBlobUrl)
+        // 2. Pass the buffer AND explicitly tell epub.js it is binary data.
+        // This bypasses the buggy instanceof check and prevents your React
+        // router from serving index.html in the background.
+        const eb = ePub(buffer, { encoding: 'binary' })
         bookRef.current = eb
 
-        // 5. Wait for the book to parse
+        // 3. Wait for the book's metadata and structure to be parsed
         await eb.ready
 
         if (!mounted || !viewerRef.current) return
@@ -135,12 +130,14 @@ export default function EpubReader({ book, onClose }) {
         const r = eb.renderTo(viewerRef.current, {
           width:   '100%',
           height:  '100%',
-          spread:  'none',   // ← kills the 2-column layout
+          spread:  'none',
           flow:    'paginated',
           manager: 'default',
           allowScriptedContent: false,
         })
         renditionRef.current = r
+        
+        // ... rest of the code remains the same
 
         // Apply visual theme before display
         applyTheme(r, 'light', 100)
