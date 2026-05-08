@@ -13,9 +13,9 @@ const THEMES = {
 export default function EpubReader({ book, onClose }) {
   const { updateBook, addHighlight, addBookmark } = useBooks()
   const toast  = useToast()
-  const viewerRef    = useRef()
-  const renditionRef = useRef()
-  const bookRef      = useRef()
+  const viewerRef    = useRef(null)
+  const renditionRef = useRef(null)
+  const bookRef      = useRef(null)
 
   const [progress,      setProgress]      = useState(book.progress || 0)
   const [theme,         setTheme]         = useState('light')
@@ -26,7 +26,7 @@ export default function EpubReader({ book, onClose }) {
   const [error,         setError]         = useState(null)
   const [isPdf,         setIsPdf]         = useState(false)
   const [pdfBlobUrl,    setPdfBlobUrl]    = useState(null)
-  const [fileBlob,      setFileBlob]      = useState(null)  // for download fallback
+  const [fileBlob,      setFileBlob]      = useState(null)
 
   const T = THEMES[theme]
 
@@ -40,110 +40,81 @@ export default function EpubReader({ book, onClose }) {
         'font-size':    `${fs}% !important`,
         'line-height':  '1.85 !important',
         'padding':      '0 2.5rem !important',
-        'max-width':    '680px !important',
-        'margin':       '0 auto !important',
-      },
-      p:  { 'margin-bottom': '1em !important' },
-      h1: { 'font-family': '"Cinzel", serif !important', 'color': `${th.text} !important` },
-      h2: { 'font-family': '"Cinzel", serif !important', 'color': `${th.text} !important` },
+      }
     })
   }
 
   useEffect(() => {
+    let mounted = true
     const fileType = book.file_type || (book.file_name?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'epub')
 
     const loadFile = async () => {
-      // Validate that file_path exists
       if (!book.file_path) {
-        console.error('[EpubReader] No file_path on book:', { bookId: book.id, bookTitle: book.title })
-        setError('No file path found. This book may not have been fully uploaded.')
+        setError('No file path found.')
         setLoading(false)
         return
       }
-      console.log('[EpubReader] Loading file:', { bookId: book.id, filePath: book.file_path })
 
       try {
-        // Get file from Supabase Storage
         const stored = await getFile(book.file_path)
-        if (!stored) {
-          setError('File not found in Supabase Storage. Please re-upload the file.')
-          setLoading(false)
-          return
-        }
-
-        const file = stored.file || stored
+        const file = stored?.file || stored
+        if (!file) throw new Error('File not found')
         setFileBlob(file)
 
         if (fileType === 'pdf') {
           setIsPdf(true)
-          const url = URL.createObjectURL(file)
-          setPdfBlobUrl(url)
+          setPdfBlobUrl(URL.createObjectURL(file))
           setLoading(false)
           return
         }
 
-               // ePub
-        let mounted = true
-        try {
-          console.log('[EpubReader] Attempting to parse epub file, size:', file.size, 'bytes')
-          
-          const epubModule = await import('epubjs')
-          const ePub = epubModule.default || epubModule
-          const arrayBuffer = await file.arrayBuffer()
+        // EPUB Logic
+        const epubModule = await import('epubjs')
+        const ePub = epubModule.default || epubModule
+        const arrayBuffer = await file.arrayBuffer()
 
-          // Basic validation
-          const firstBytes = new Uint8Array(arrayBuffer.slice(0, 4))
-          const isZipFile = firstBytes[0] === 0x50 && firstBytes[1] === 0x4B 
-          if (!isZipFile) throw new Error('File is not a valid ZIP/EPUB')
-
-          // FIX: Initialize the book (no await) and wait for it to be ready
-          const eb = ePub(arrayBuffer)
-          bookRef.current = eb
-          await eb.ready 
-
-          if (!mounted || !viewerRef.current) return
-
-          // Render the book
-          const r = eb.renderTo(viewerRef.current, { 
-            width: '100%', 
-            height: '100%', 
-            spread: 'none',
-            manager: 'default',
-            flow: 'paginated'
-          })
-          
-          renditionRef.current = r
-          applyTheme(r, theme, fontSize)
-
-          const saved = localStorage.getItem(`grn_loc_${book.id}`)
-          await r.display(saved || undefined)
-
-          r.on('relocated', async (loc) => {
-            if (!mounted) return
-            const cfi = loc.start.cfi
-            setCurrentCfi(cfi)
-            localStorage.setItem(`grn_loc_${book.id}`, cfi)
-            try {
-              const pct = await eb.locations.percentageFromCfi(cfi)
-              const p = Math.round(pct * 100)
-              setProgress(p)
-              updateBook(book.id, { progress: p })
-            } catch {}
-          })
-
-          await eb.locations.generate(1024)
-          if (mounted) setLoading(false)
-        } catch (e) {
-          console.error('ePub render error:', e)
-          if (mounted) {
-            setError(`Could not open this epub file: ${e.message}.`)
-            setLoading(false)
-          }
+        // Validation fix
+        const firstBytes = new Uint8Array(arrayBuffer.slice(0, 2))
+        if (firstBytes[0] !== 0x50 || firstBytes[1] !== 0x4B) {
+          throw new Error('Not a valid EPUB file')
         }
-      } catch (storageError) {
-        console.error('Supabase storage error:', storageError)
-        setError(`Failed to load from storage: ${storageError.message || 'Unknown storage error'}`)
-        setLoading(false)
+
+        const eb = ePub(arrayBuffer)
+        bookRef.current = eb
+        await eb.ready
+
+        if (!mounted || !viewerRef.current) return
+
+        const r = eb.renderTo(viewerRef.current, { 
+          width: '100%', 
+          height: '100%', 
+          flow: 'paginated',
+          manager: 'default'
+        })
+        
+        renditionRef.current = r
+        applyTheme(r, theme, fontSize)
+
+        const saved = localStorage.getItem(`grn_loc_${book.id}`)
+        await r.display(saved || undefined)
+
+        r.on('relocated', async (loc) => {
+          if (!mounted) return
+          const cfi = loc.start.cfi
+          setCurrentCfi(cfi)
+          localStorage.setItem(`grn_loc_${book.id}`, cfi)
+          try {
+            const pct = await eb.locations.percentageFromCfi(cfi)
+            setProgress(Math.round(pct * 100))
+            updateBook(book.id, { progress: Math.round(pct * 100) })
+          } catch {}
+        })
+
+        await eb.locations.generate(1024)
+        if (mounted) setLoading(false)
+      } catch (e) {
+        console.error('Reader error:', e)
+        if (mounted) { setError(e.message); setLoading(false); }
       }
     }
 
@@ -154,180 +125,53 @@ export default function EpubReader({ book, onClose }) {
     }
   }, [book.id])
 
-  // Cleanup blob URL on unmount
   useEffect(() => {
     return () => { if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl) }
   }, [pdfBlobUrl])
-
-  const changeTheme = (t) => { setTheme(t); if (renditionRef.current) applyTheme(renditionRef.current, t, fontSize) }
-  const changeFontSize = (fs) => { setFontSize(fs); if (renditionRef.current) applyTheme(renditionRef.current, theme, fs) }
-
-  const handleHighlight = () => {
-    const sel = window.getSelection()
-    if (!sel?.toString().trim()) { toast('Select some text first', 'error'); return }
-    addHighlight({ book_id: book.id, text: sel.toString().trim(), cfi: currentCfi, color: 'gold', page_info: `${progress}%` })
-    toast('Passage highlighted ✦', 'success')
-    sel.removeAllRanges()
-  }
-
-  const handleBookmark = () => {
-    addBookmark({ book_id: book.id, cfi: currentCfi, label: `Bookmark at ${progress}%`, page_info: `${progress}%` })
-    toast('Bookmark saved ✦', 'success')
-  }
 
   const handleDownload = () => {
     if (!fileBlob) return
     const url = URL.createObjectURL(fileBlob)
     const a = document.createElement('a')
-    a.href = url; a.download = book.file_name || book.title
-    a.click()
+    a.href = url; a.download = book.file_name || book.title; a.click()
     URL.revokeObjectURL(url)
   }
 
-  // ── SHARED TOOLBAR ──
-  const Toolbar = () => (
-    <div style={{ background: T.toolbar, borderBottom: `1px solid ${T.border}`, padding: '.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', flexShrink: 0 }}>
-      <button onClick={onClose} style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.3rem', color: T.btnColor, fontFamily: 'Cinzel, serif', fontSize: '.68rem', padding: '.3rem .7rem' }}>
-        <X size={13} /> Close
-      </button>
-      <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.82rem', color: T.btnColor, fontWeight: 500, letterSpacing: '.05em', flex: 1, textAlign: 'center', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {book.title}
-      </span>
-      <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center' }}>
-        {!isPdf && <>
-          <button onClick={handleHighlight} style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.3rem', color: T.btnColor, fontFamily: 'Cinzel, serif', fontSize: '.65rem', padding: '.3rem .6rem' }}>
-            <Highlighter size={11} /><span className="hide-mobile">Highlight</span>
-          </button>
-          <button onClick={handleBookmark} style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.3rem', color: T.btnColor, fontFamily: 'Cinzel, serif', fontSize: '.65rem', padding: '.3rem .6rem' }}>
-            <Bookmark size={11} /><span className="hide-mobile">Bookmark</span>
-          </button>
-        </>}
-        <button onClick={handleDownload} title="Download file" style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 4, cursor: 'pointer', color: T.btnColor, padding: '.3rem .45rem', display: 'flex', alignItems: 'center' }}>
-          <Download size={13} />
-        </button>
-        {!isPdf && (
-          <button onClick={() => setShowSettings(s => !s)} style={{ background: showSettings ? 'rgba(128,100,50,0.15)' : 'none', border: `1px solid ${T.border}`, borderRadius: 4, cursor: 'pointer', color: T.btnColor, padding: '.3rem .45rem', display: 'flex', alignItems: 'center' }}>
-            <Settings size={13} />
-          </button>
-        )}
-      </div>
-    </div>
-  )
+  if (loading) return <div style={{ background: T.bg, color: T.text, height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cinzel' }}>Loading Library...</div>
+  if (error) return <div style={{ background: T.bg, color: T.text, height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error: {error}</div>
 
-  // ── SETTINGS PANEL ──
-  const SettingsPanel = () => (
-    <div style={{ background: T.toolbar, borderBottom: `1px solid ${T.border}`, padding: '.6rem 1rem', display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
-      <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.58rem', letterSpacing: '.12em', color: T.btnColor, opacity: .7 }}>THEME</span>
-        {Object.entries(THEMES).map(([k]) => (
-          <button key={k} onClick={() => changeTheme(k)} style={{ padding: '.2rem .55rem', borderRadius: 3, cursor: 'pointer', fontFamily: 'Cinzel, serif', fontSize: '.62rem', border: theme === k ? `2px solid var(--gold)` : `1px solid ${T.border}`, background: THEMES[k].bg, color: THEMES[k].text, fontWeight: theme === k ? 600 : 400 }}>
-            {k.charAt(0).toUpperCase() + k.slice(1)}
-          </button>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.58rem', letterSpacing: '.12em', color: T.btnColor, opacity: .7 }}>SIZE</span>
-        {[80, 90, 100, 115, 130].map(s => (
-          <button key={s} onClick={() => changeFontSize(s)} style={{ padding: '.2rem .45rem', borderRadius: 3, cursor: 'pointer', fontFamily: 'Cinzel, serif', fontSize: '.62rem', border: `1px solid ${T.border}`, background: fontSize === s ? '#9b1f35' : 'transparent', color: fontSize === s ? '#fff' : T.btnColor }}>
-            {s}%
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
-  // ── BOTTOM NAV ──
-  const BottomNav = ({ showNav = true }) => (
-    <div style={{ background: T.toolbar, borderTop: `1px solid ${T.border}`, padding: '.6rem 1rem', display: 'flex', alignItems: 'center', gap: '.75rem', flexShrink: 0 }}>
-      {showNav && <button onClick={() => renditionRef.current?.prev()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.btnColor, padding: '.2rem', display: 'flex' }}><ChevronLeft size={22} /></button>}
-      <div style={{ flex: 1, height: 4, background: 'rgba(128,100,50,0.2)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg,#9b1f35,#d4a843)', borderRadius: 2, transition: 'width .3s' }} />
-      </div>
-      <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.65rem', color: T.btnColor, opacity: .8, minWidth: 38, textAlign: 'center' }}>{progress}%</span>
-      {showNav && <button onClick={() => renditionRef.current?.next()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.btnColor, padding: '.2rem', display: 'flex' }}><ChevronRight size={22} /></button>}
-    </div>
-  )
-
-  // ── ERROR STATE ──
-  if (error) return (
-    <div style={{ position: 'fixed', inset: 0, background: T.bg, zIndex: 500, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
-      <div style={{ fontSize: '3rem' }}>📖</div>
-      <p style={{ fontFamily: 'Cinzel, serif', color: T.btnColor, fontSize: '.95rem', maxWidth: 340, lineHeight: 1.6 }}>{error}</p>
-      <button onClick={onClose} style={{ marginTop: '.5rem', fontFamily: 'Cinzel, serif', fontSize: '.75rem', padding: '.5rem 1.25rem', border: `1px solid ${T.border}`, borderRadius: 4, background: 'none', cursor: 'pointer', color: T.btnColor }}>
-        ← Back to Library
-      </button>
-    </div>
-  )
-
-  // ── PDF VIEWER ──
-  if (isPdf) return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', flexDirection: 'column', background: '#404040' }}>
-      <style>{`.hide-mobile { } @media(max-width:480px){.hide-mobile{display:none}}`}</style>
-      <Toolbar />
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {pdfBlobUrl ? (
-          <>
-            {/* Desktop: iframe */}
-            <iframe
-              src={pdfBlobUrl}
-              style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-              title={book.title}
-            />
-            {/* Mobile fallback — always show on mobile */}
-            <div className="pdf-mobile-fallback" style={{
-              display: window.innerWidth <= 768 ? 'flex' : 'none',
-              position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center',
-              flexDirection: 'column', gap: '1rem', background: '#2a2a2a', color: '#ddd',
-              textAlign: 'center', padding: '2rem', zIndex: 10
-            }}>
-              <div style={{ fontSize: '3rem' }}>📄</div>
-              <p style={{ fontFamily: 'Cinzel, serif', fontSize: '.9rem' }}>
-                PDF preview not supported on mobile devices
-              </p>
-              <button onClick={handleDownload} style={{
-                background: 'var(--gold)', color: '#1a1208', border: 'none', borderRadius: 4,
-                padding: '.6rem 1.25rem', fontFamily: 'Cinzel, serif', fontSize: '.75rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.4rem'
-              }}>
-                <Download size={14} /> Download PDF to Read
-              </button>
-            </div>
-          </>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', flexDirection: 'column', gap: '1rem' }}>
-            <p style={{ fontFamily: 'Cinzel, serif' }}>Loading PDF...</p>
-          </div>
-        )}
-      </div>
-      <BottomNav showNav={false} />
-    </div>
-  )
-
-  // ── EPUB VIEWER ──
   return (
-    <div style={{ position: 'fixed', inset: 0, background: T.bg, zIndex: 500, display: 'flex', flexDirection: 'column' }}>
-      <style>{`
-        .hide-mobile { }
-        @media(max-width:480px){ .hide-mobile { display:none } }
-        /* iOS iframe PDF fallback */
-        @supports (-webkit-touch-callout: none) {
-          .pdf-mobile-fallback { display: flex !important; }
-          iframe[title] { display: none !important; }
-        }
-      `}</style>
-      <Toolbar />
-      {showSettings && <SettingsPanel />}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: T.bg }}>
-        {loading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg, zIndex: 10 }}>
-            <p style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', color: T.btnColor, fontSize: '1.1rem', opacity: .7 }}>
-              Opening your book...
-            </p>
-          </div>
-        )}
-        <div ref={viewerRef} style={{ width: '100%', height: '100%' }} />
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: T.bg, display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ background: T.toolbar, borderBottom: `1px solid ${T.border}`, padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button onClick={onClose} style={{ background: 'none', border: `1px solid ${T.border}`, color: T.btnColor, padding: '.4rem .8rem', cursor: 'pointer' }}><X size={16} /></button>
+        <span style={{ color: T.text, fontFamily: 'Cinzel', fontWeight: 'bold' }}>{book.title}</span>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button onClick={() => setShowSettings(!showSettings)} style={{ background: 'none', border: 'none', color: T.btnColor, cursor: 'pointer' }}><Settings size={20} /></button>
+          <button onClick={handleDownload} style={{ background: 'none', border: 'none', color: T.btnColor, cursor: 'pointer' }}><Download size={20} /></button>
+        </div>
       </div>
-      <BottomNav showNav={true} />
+
+      {/* Reader Body */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        {!isPdf && (
+          <>
+            <button onClick={() => renditionRef.current?.prev()} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '80px', zIndex: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: T.btnColor }}><ChevronLeft size={40} /></button>
+            <button onClick={() => renditionRef.current?.next()} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '80px', zIndex: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: T.btnColor }}><ChevronRight size={40} /></button>
+          </>
+        )}
+        
+        {isPdf ? (
+          <iframe src={pdfBlobUrl} style={{ width: '100%', height: '100%', border: 'none' }} />
+        ) : (
+          <div ref={viewerRef} style={{ height: '100%', width: '100%' }} />
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '.5rem', textAlign: 'center', fontSize: '.8rem', color: T.text, borderTop: `1px solid ${T.border}`, background: T.toolbar }}>
+        Progress: {progress}%
+      </div>
     </div>
   )
 }
