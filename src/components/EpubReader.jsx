@@ -321,22 +321,18 @@ export default function EpubReader({ book, onClose }) {
   )
 
   // ── Loading state ─────────────────────────────────────────────
-  if (loading) return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-      <div style={{ fontSize: '2.5rem', animation: 'pulse 2s ease infinite' }}>📖</div>
-      <p style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', color: T.btnColor, fontSize: '1.05rem', opacity: .75 }}>{loadMsg}</p>
-      <style>{`@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}`}</style>
-    </div>
-  )
+  if (loading) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', pointerEvents: 'none' }}>
+        <div style={{ fontSize: '2.5rem', animation: 'pulse 2s ease infinite' }}>📖</div>
+        <p style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', color: T.btnColor, fontSize: '1.05rem', opacity: .75 }}>{loadMsg}</p>
+        <style>{`@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}`}</style>
+      </div>
+    )
+  }
 
   // ── Error state ───────────────────────────────────────────────
-  if (error) return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
-      <div style={{ fontSize: '3rem' }}>📖</div>
-      <p style={{ fontFamily: 'Cinzel, serif', color: T.btnColor, fontSize: '.95rem', maxWidth: 360, lineHeight: 1.7 }}>{error}</p>
-      <button onClick={onClose} style={{ ...btnStyle(T), marginTop: '.5rem' }}>← Back to Library</button>
-    </div>
-  )
+  // (Now handled as an overlay in EPUB viewer return)
 
   // ── PDF viewer ────────────────────────────────────────────────
   if (isPdf) return (
@@ -385,6 +381,25 @@ export default function EpubReader({ book, onClose }) {
   // ── EPUB viewer ───────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', flexDirection: 'column', background: T.bg }}>
+      {/* Overlay: Loading state */}
+      {loading && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', pointerEvents: 'none' }}>
+          <div style={{ fontSize: '2.5rem', animation: 'pulse 2s ease infinite' }}>📖</div>
+          <p style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', color: T.btnColor, fontSize: '1.05rem', opacity: .75 }}>{loadMsg}</p>
+          <style>{`@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}`}</style>
+        </div>
+      )}
+
+      {/* Overlay: Error state */}
+      {error && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem', textAlign: 'center', pointerEvents: 'auto' }}>
+          <div style={{ fontSize: '3rem' }}>📖</div>
+          <p style={{ fontFamily: 'Cinzel, serif', color: T.btnColor, fontSize: '.95rem', maxWidth: 360, lineHeight: 1.7 }}>{error}</p>
+          <button onClick={onClose} style={{ ...btnStyle(T), marginTop: '.5rem' }}>← Back to Library</button>
+        </div>
+      )}
+
+      {/* Main EPUB interface */}
       <Toolbar>
         <button onClick={handleHighlight} style={btnStyle(T)} title="Highlight selected text">
           <Highlighter size={13} /> <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.65rem' }} className="hide-xs">Highlight</span>
@@ -399,7 +414,7 @@ export default function EpubReader({ book, onClose }) {
 
       {showSettings && <SettingsPanel />}
 
-      {/* The epub canvas */}
+      {/* The epub canvas — ALWAYS rendered so ref is accessible */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', background: T.bg }}>
         <div ref={viewerRef} style={{ width: '100%', height: '100%' }} />
       </div>
