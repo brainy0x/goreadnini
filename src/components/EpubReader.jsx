@@ -99,10 +99,20 @@ export default function EpubReader({ book, onClose }) {
         }
 
       // ... (PDF check above remains the same)
+// ── EPUB path ─────────────────────────────────────────
+        setLoadMsg('Parsing epub...')
 
-       // ── EPUB path ─────────────────────────────────────────
-        setLoadMsg('Starting reader...')
+        // 1. Force the Supabase stream into a complete local memory buffer
+        const buffer = await file.arrayBuffer()
         
+        // 2. Reconstruct a clean, local Blob exactly like your old code did
+        const cleanBlob = new Blob([buffer], { type: 'application/epub+zip' })
+        
+        // 3. Create the Object URL from the clean local Blob
+        const epubBlobUrl = URL.createObjectURL(cleanBlob)
+        blobUrlRef.current = epubBlobUrl
+
+        setLoadMsg('Starting reader...')
         const epubModule = await import('epubjs')
         const ePub = epubModule.default ?? epubModule.ePub ?? epubModule
 
@@ -110,24 +120,16 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
-        // 1. Create a local Object URL for the EPUB Blob (just like your PDF logic)
-        const url = URL.createObjectURL(file)
-        
-        // 2. Save it to your ref so it gets cleaned up when the component unmounts
-        blobUrlRef.current = url 
-
-        // 3. Initialize the book directly with the URL
-        const eb = ePub(url)
+        // 4. Initialize synchronously just like the old code
+        const eb = ePub(epubBlobUrl)
         bookRef.current = eb
 
-        // 4. Wait for the book's metadata and structure to be ready
+        // 5. Wait for the book to parse
         await eb.ready
 
         if (!mounted || !viewerRef.current) return
 
         setLoadMsg('Rendering...')
-    
-        // ... (renderTo and applyTheme remain exactly the same)
 
         // renderTo must happen AFTER eb.ready
         const r = eb.renderTo(viewerRef.current, {
