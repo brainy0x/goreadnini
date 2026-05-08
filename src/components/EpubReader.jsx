@@ -99,7 +99,7 @@ export default function EpubReader({ book, onClose }) {
             throw new Error('File does not appear to be a valid EPUB (not a ZIP file)')
           }
 
-          const eb = Epub(arrayBuffer)
+          const eb = await Epub(arrayBuffer)
           console.log('[EpubReader] Epub object created')
           bookRef.current = eb
 
