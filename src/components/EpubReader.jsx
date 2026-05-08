@@ -85,9 +85,22 @@ export default function EpubReader({ book, onClose }) {
         // ePub
         let mounted = true
         try {
+          console.log('[EpubReader] Attempting to parse epub file, size:', file.size, 'bytes')
           const Epub = (await import('epubjs')).default
           const arrayBuffer = await file.arrayBuffer()
+          console.log('[EpubReader] ArrayBuffer created, size:', arrayBuffer.byteLength)
+
+          // Basic validation - check if it looks like an epub
+          const firstBytes = new Uint8Array(arrayBuffer.slice(0, 4))
+          const isZipFile = firstBytes[0] === 0x50 && firstBytes[1] === 0x4B // PK (ZIP header)
+          console.log('[EpubReader] File header check - is ZIP format:', isZipFile)
+
+          if (!isZipFile) {
+            throw new Error('File does not appear to be a valid EPUB (not a ZIP file)')
+          }
+
           const eb = Epub(arrayBuffer)
+          console.log('[EpubReader] Epub object created')
           bookRef.current = eb
 
           const r = eb.renderTo(viewerRef.current, { width: '100%', height: '100%', spread: 'none' })
@@ -114,7 +127,11 @@ export default function EpubReader({ book, onClose }) {
           if (mounted) setLoading(false)
         } catch (e) {
           console.error('ePub render error:', e)
-          if (mounted) { setError('Could not open this epub file.'); setLoading(false) }
+          const errorMsg = e?.message || 'Unknown epub parsing error'
+          if (mounted) {
+            setError(`Could not open this epub file: ${errorMsg}. The file may be corrupted, not a valid EPUB, or was not uploaded correctly.`)
+            setLoading(false)
+          }
         }
       } catch (storageError) {
         console.error('Supabase storage error:', storageError)
@@ -247,11 +264,22 @@ export default function EpubReader({ book, onClose }) {
               style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
               title={book.title}
             />
-            {/* Mobile fallback — shown via CSS if iframe fails */}
-            <div className="pdf-mobile-fallback" style={{ display: 'none', position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem', background: '#2a2a2a', color: '#ddd', textAlign: 'center', padding: '2rem' }}>
+            {/* Mobile fallback — always show on mobile */}
+            <div className="pdf-mobile-fallback" style={{
+              display: window.innerWidth <= 768 ? 'flex' : 'none',
+              position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center',
+              flexDirection: 'column', gap: '1rem', background: '#2a2a2a', color: '#ddd',
+              textAlign: 'center', padding: '2rem', zIndex: 10
+            }}>
               <div style={{ fontSize: '3rem' }}>📄</div>
-              <p style={{ fontFamily: 'Cinzel, serif', fontSize: '.9rem' }}>PDF preview not supported on this browser</p>
-              <button onClick={handleDownload} style={{ background: 'var(--gold)', color: '#1a1208', border: 'none', borderRadius: 4, padding: '.6rem 1.25rem', fontFamily: 'Cinzel, serif', fontSize: '.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+              <p style={{ fontFamily: 'Cinzel, serif', fontSize: '.9rem' }}>
+                PDF preview not supported on mobile devices
+              </p>
+              <button onClick={handleDownload} style={{
+                background: 'var(--gold)', color: '#1a1208', border: 'none', borderRadius: 4,
+                padding: '.6rem 1.25rem', fontFamily: 'Cinzel, serif', fontSize: '.75rem',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.4rem'
+              }}>
                 <Download size={14} /> Download PDF to Read
               </button>
             </div>

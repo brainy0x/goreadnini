@@ -827,6 +827,77 @@ textarea.input { resize: vertical; min-height: 80px; }
   .modal-body [style*="grid-template-columns: 1fr 1fr"] {
     grid-template-columns: 1fr !important;
   }
+
+  /* Fix horizontal overflow issues */
+  .page-body {
+    overflow-x: hidden;
+  }
+
+  /* Ensure upload page is responsive */
+  .page-body[style*="maxWidth: 580"] {
+    max-width: 100% !important;
+  }
+
+  /* Fix any fixed width elements */
+  .card, .input, .select, .btn {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Reader toolbar responsive */
+  .reader-toolbar {
+    padding: .6rem 1rem;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .reader-toolbar-title {
+    font-size: .8rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Reader controls responsive */
+  .reader-controls {
+    padding: .5rem 1rem;
+    gap: .5rem;
+  }
+
+  .reader-btn {
+    padding: .25rem .4rem;
+    font-size: .6rem;
+  }
+
+  /* Settings panel responsive */
+  .reader-settings-panel {
+    padding: .5rem 1rem;
+    gap: .75rem;
+  }
+
+  /* Theme pills smaller on mobile */
+  .theme-pill {
+    padding: .15rem .4rem;
+    font-size: .55rem;
+  }
+
+  /* EpubReader specific mobile fixes */
+  .epub-reader-toolbar {
+    padding: .5rem .75rem !important;
+  }
+
+  .epub-reader-toolbar-title {
+    font-size: .75rem !important;
+  }
+
+  .epub-reader-btn {
+    padding: .2rem .35rem !important;
+    font-size: .55rem !important;
+  }
+}
+}
 }
 
 @media (max-width: 380px) {
