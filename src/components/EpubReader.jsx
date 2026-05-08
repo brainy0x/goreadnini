@@ -78,8 +78,11 @@ export default function EpubReader({ book, onClose }) {
         if (!stored) {
           throw new Error('File not found in Supabase Storage. Please re-upload the file.')
         }
-        const file = stored.file instanceof File ? stored.file : stored
-        if (!(file instanceof Blob)) throw new Error('Stored file is corrupted. Please re-upload.')
+        const file = stored?.file ?? stored
+        console.log('[EpubReader] Retrieved file from storage:', file)
+        if (!(file instanceof Blob)) {
+          throw new Error('Stored file is corrupted. Please re-upload.')
+        }
         setFileBlob(file)
 
         const fileType = book.file_type ||
