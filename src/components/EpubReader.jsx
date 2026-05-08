@@ -98,16 +98,15 @@ export default function EpubReader({ book, onClose }) {
           return
         }
 
+      // ... (PDF check above remains the same)
+
         // ── EPUB path ─────────────────────────────────────────
         setLoadMsg('Parsing epub...')
 
-        // Convert EPUB file to raw bytes and parse with epubjs directly
         const epubBytes = await file.arrayBuffer()
 
-        // Optional validation: ensure this looks like a ZIP-based EPUB
         const header = new Uint8Array(epubBytes.slice(0, 4))
         const isZip = header[0] === 0x50 && header[1] === 0x4B
-        console.log('[EpubReader] EPUB header ZIP check:', isZip)
         if (!isZip) {
           throw new Error('Downloaded file does not appear to be a valid EPUB package.')
         }
@@ -120,15 +119,21 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
-        const eb = await ePub(epubBytes)
+        // 1. Initialize the empty book instance (synchronous)
+        const eb = ePub()
         bookRef.current = eb
 
-        // Wait for book metadata to be ready
+        // 2. Explicitly open the ArrayBuffer as binary data
+        await eb.open(epubBytes, 'binary')
+
+        // 3. Wait for the book's metadata and structure to be fully parsed
         await eb.ready
 
         if (!mounted || !viewerRef.current) return
 
         setLoadMsg('Rendering...')
+
+        // ... (renderTo and applyTheme remain exactly the same)
 
         // renderTo must happen AFTER eb.ready
         const r = eb.renderTo(viewerRef.current, {
