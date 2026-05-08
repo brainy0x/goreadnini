@@ -320,21 +320,10 @@ export default function EpubReader({ book, onClose }) {
     </div>
   )
 
-  // ── Loading state ─────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', pointerEvents: 'none' }}>
-        <div style={{ fontSize: '2.5rem', animation: 'pulse 2s ease infinite' }}>📖</div>
-        <p style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', color: T.btnColor, fontSize: '1.05rem', opacity: .75 }}>{loadMsg}</p>
-        <style>{`@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}`}</style>
-      </div>
-    )
-  }
+  // ── Main render: Everything in one unified structure ────────────
 
-  // ── Error state ───────────────────────────────────────────────
-  // (Now handled as an overlay in EPUB viewer return)
-
-  // ── PDF viewer ────────────────────────────────────────────────
+  // Error state (rendered as overlay in EPUB return below)
+  // PDF viewer
   if (isPdf) return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', flexDirection: 'column', background: '#3a3a3a' }}>
       <Toolbar>
