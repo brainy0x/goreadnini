@@ -137,7 +137,7 @@ export default function AddBookModal({ onClose }) {
               )}
             </>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="book-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
                 <label className="form-label">Title *</label>
                 <input className="input" value={manualForm.title} onChange={e => mf('title', e.target.value)} placeholder="Book title" />

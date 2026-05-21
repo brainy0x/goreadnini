@@ -21,6 +21,7 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #root { max-width: 100%; overflow-x: hidden; }
 
 body {
   background: var(--bg-deep);
@@ -319,6 +320,15 @@ textarea.input { resize: vertical; min-height: 80px; }
 }
 
 @media (max-width: 768px) {
+  * { min-width: 0; }
+  .app-shell,
+  .main-content,
+  .page-header,
+  .page-body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: clip;
+  }
   .menu-toggle { display: flex; align-items: center; justify-content: center; }
   .sidebar { transform: translateX(-100%); box-shadow: 4px 0 30px rgba(0,0,0,.6); }
   .sidebar.open { transform: translateX(0); }
@@ -332,6 +342,10 @@ textarea.input { resize: vertical; min-height: 80px; }
   .page-title { font-size: 1.45rem; }
   .page-subtitle { font-size: .88rem; }
   .page-body { padding: 1.25rem 1rem; overflow-x: hidden; }
+  .page-body[style],
+  .search-import-bar[style] {
+    max-width: 100% !important;
+  }
   .page-header .btn { align-self: flex-start; }
   .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem .75rem; }
   .book-card:hover { transform: none; }
@@ -369,6 +383,11 @@ textarea.input { resize: vertical; min-height: 80px; }
     flex-direction: column !important;
     align-items: stretch !important;
   }
+  .session-form > div,
+  .quote-inline-form > *,
+  .search-import-bar > * {
+    width: 100% !important;
+  }
   .shelf-toolbar > div:last-child { align-self: flex-end; }
   .book-list .card {
     align-items: flex-start !important;
@@ -385,8 +404,26 @@ textarea.input { resize: vertical; min-height: 80px; }
   .book-edit-grid,
   .goals-overview-grid,
   .goal-form-grid,
-  .search-results-grid {
+  .search-results-grid,
+  .wrapped-layout,
+  .wrapped-stats-grid {
     grid-template-columns: 1fr !important;
+  }
+  .wrapped-layout {
+    gap: 1.25rem !important;
+  }
+  .wrapped-card {
+    width: 100% !important;
+    max-width: calc(100vw - 2rem) !important;
+    padding: 2rem 1rem !important;
+    border-radius: 10px !important;
+  }
+  .wrapped-details {
+    min-width: 0 !important;
+    width: 100%;
+  }
+  .wrapped-card [style*="font-size: 4rem"] {
+    font-size: 3rem !important;
   }
   .quote-actions { justify-content: stretch !important; }
   .quote-actions .btn { flex: 1; justify-content: center; }
@@ -405,6 +442,11 @@ textarea.input { resize: vertical; min-height: 80px; }
   .goal-book-row {
     align-items: flex-start !important;
     gap: .9rem !important;
+  }
+  .access-gate { padding: 1rem; }
+  .access-panel {
+    padding: 2rem 1.25rem;
+    max-width: 100%;
   }
   .toast-container {
     left: 1rem;

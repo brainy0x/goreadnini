@@ -36,9 +36,9 @@ export default function WrappedPage() {
       </div>
 
       <div className="page-body">
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2.5rem', alignItems: 'start', flexWrap: 'wrap' }}>
+        <div className="wrapped-layout" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2.5rem', alignItems: 'start', flexWrap: 'wrap' }}>
           {/* The wrapped card */}
-          <div ref={cardRef} style={{
+          <div ref={cardRef} className="wrapped-card" style={{
             background: 'linear-gradient(160deg, #0f0a0d 0%, #1a0c14 40%, #0d0f1c 100%)',
             border: '1px solid var(--border-bright)',
             borderRadius: 16,
@@ -65,7 +65,7 @@ export default function WrappedPage() {
               </div>
 
               {/* Stats row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '2rem' }}>
+              <div className="wrapped-stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '2rem' }}>
                 {[
                   { val: totalPages.toLocaleString(), label: 'Pages Read' },
                   { val: `${totalHours}h`, label: 'Hours Reading' },
@@ -108,7 +108,7 @@ export default function WrappedPage() {
           </div>
 
           {/* Right side explanations */}
-          <div style={{ minWidth: 240 }}>
+          <div className="wrapped-details" style={{ minWidth: 240 }}>
             <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1.25rem' }}>YOUR {year} IN READING</div>
 
             {[
