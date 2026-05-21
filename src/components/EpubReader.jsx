@@ -3,6 +3,8 @@ import { X, ChevronLeft, ChevronRight, Bookmark, Highlighter, Settings, Download
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { getFile } from '../lib/fileStorage'
+import DefaultViewManager from 'epubjs/src/managers/default/index'
+import IframeView from 'epubjs/src/managers/views/iframe'
 
 const THEMES = {
   light: { bg: '#f8f3e8', text: '#1e1508', toolbar: '#ede5d0', border: 'rgba(0,0,0,0.12)', btnColor: '#4a3820', icon: Sun   },
@@ -73,6 +75,10 @@ export default function EpubReader({ book, onClose }) {
       try {
         setLoadMsg('Loading file...')
 
+        if (!book.file_path) {
+          throw new Error('This book does not have an uploaded file attached yet. Please re-upload it from the Upload page.')
+        }
+
         // Get file from Supabase Storage
         const stored = await getFile(book.file_path)
         if (!stored) {
@@ -114,9 +120,11 @@ export default function EpubReader({ book, onClose }) {
           throw new Error('Could not load epub reader library.')
         }
 
+        window.ePub = ePub
+
         console.log('[EpubReader] Creating epub instance with buffer (binary mode)')
         // 2. Pass the buffer AND explicitly tell epub.js it is binary data.
-        const eb = ePub(buffer, { encoding: 'binary' })
+        const eb = await ePub(buffer, { encoding: 'binary' })
         bookRef.current = eb
         console.log('[EpubReader] epub instance created, waiting for ready...')
 
@@ -138,7 +146,8 @@ export default function EpubReader({ book, onClose }) {
           height:  '100%',
           spread:  'none',
           flow:    'paginated',
-          manager: 'default',
+          manager: DefaultViewManager,
+          view:    IframeView,
           allowScriptedContent: false,
         })
         renditionRef.current = r
@@ -168,7 +177,10 @@ export default function EpubReader({ book, onClose }) {
         })
 
         // Generate locations for progress % (non-blocking)
-        eb.locations.generate(1024).catch(() => {})
+        const locationsPromise = eb.generateLocations
+          ? eb.generateLocations(1024)
+          : eb.locations?.generate?.(1024)
+        Promise.resolve(locationsPromise).catch(() => {})
 
         console.log('[EpubReader] Initialization complete, hiding loader')
         if (mounted) setLoading(false)

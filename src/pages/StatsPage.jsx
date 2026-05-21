@@ -33,7 +33,7 @@ function Heatmap({ sessions }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(52, 1fr)', gap: 2 }}>
+      <div className="heatmap-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(52, 1fr)', gap: 2 }}>
         {cells.map(c => (
           <div
             key={c.key}
@@ -49,7 +49,7 @@ function Heatmap({ sessions }) {
           />
         ))}
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+      <div className="heatmap-legend" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
         <span>Less</span>
         {[0,1,2,3,4].map(l => (
           <div key={l} style={{ width: 10, height: 10, borderRadius: 2, background: l === 0 ? 'var(--bg-card)' : l === 1 ? 'rgba(139,26,46,0.3)' : l === 2 ? 'rgba(139,26,46,0.6)' : l === 3 ? 'var(--crimson)' : 'var(--gold-dim)' }} />
@@ -150,7 +150,7 @@ export default function StatsPage() {
         {/* Log a session */}
         <div className="card" style={{ padding: '1.5rem' }}>
           <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>LOG A READING SESSION</div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="session-form" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label className="form-label">Book</label>
               <select className="select" value={logBookId} onChange={e => setLogBookId(e.target.value)}>

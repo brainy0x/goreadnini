@@ -51,7 +51,7 @@ export default function QuotesPage() {
               <label className="form-label">Quote *</label>
               <textarea className="input" value={form.text} onChange={e => setForm(p => ({ ...p, text: e.target.value }))} rows={4} placeholder="Enter the passage or quote..." style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', fontSize: '1.05rem', lineHeight: '1.7' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="quote-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
                 <label className="form-label">From a book in your library</label>
                 <select className="select" value={form.book_id} onChange={e => setForm(p => ({ ...p, book_id: e.target.value }))}>
@@ -68,7 +68,7 @@ export default function QuotesPage() {
                 <input className="input" value={form.author} onChange={e => setForm(p => ({ ...p, author: e.target.value }))} placeholder="Author name" />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <div className="quote-actions" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(false)}>Cancel</button>
               <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Quote'}

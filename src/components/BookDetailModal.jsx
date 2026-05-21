@@ -24,8 +24,8 @@ export default function BookDetailModal({ book, onClose, onRead }) {
   const [quoteText, setQuoteText] = useState('')
   const [savingQuote, setSavingQuote] = useState(false)
 
-  // Show Open Reader if book has an attached file
-  const hasFile = book.has_file || book.file_path || book.epub_path || book.file_data || book.file_name
+  // The reader needs a real Supabase Storage path, not just a saved filename.
+  const canOpenReader = Boolean(book.file_path)
 
   const handleSave = async () => {
     await updateBook(book.id, form)
@@ -85,7 +85,7 @@ export default function BookDetailModal({ book, onClose, onRead }) {
             {/* Details */}
             <div style={{ flex: 1, minWidth: 200 }}>
               {editing ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.65rem' }}>
+                <div className="book-edit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.65rem' }}>
                   <div className="form-group" style={{ gridColumn: '1/-1', margin: 0 }}>
                     <label className="form-label">Title</label>
                     <input className="input" value={form.title} onChange={e => f('title', e.target.value)} />
@@ -141,7 +141,7 @@ export default function BookDetailModal({ book, onClose, onRead }) {
                   {book.rating > 0 && <div style={{ color: 'var(--gold)', fontSize: '1rem' }}>{'★'.repeat(book.rating)}{'☆'.repeat(5 - book.rating)}</div>}
                   {book.review && <div style={{ font: 'italic .88rem/1.5 "IM Fell English", serif', color: 'var(--text-secondary)', borderLeft: '2px solid var(--gold-dim)', paddingLeft: '.75rem' }}>{book.review}</div>}
                   {book.description && <div style={{ fontSize: '.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>{book.description.slice(0, 280)}{book.description.length > 280 ? '...' : ''}</div>}
-                  {hasFile && (
+                  {canOpenReader && (
                     <div style={{ marginTop: '.25rem' }}>
                       <span style={{ fontSize: '.75rem', color: 'var(--gold-dim)', fontFamily: 'Cinzel, serif', letterSpacing: '.05em' }}>
                         📁 {book.file_type?.toUpperCase() || 'FILE'} attached
@@ -156,7 +156,7 @@ export default function BookDetailModal({ book, onClose, onRead }) {
           {/* Quote input */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
             <label className="form-label">Save a quote from this book</label>
-            <div style={{ display: 'flex', gap: '.75rem' }}>
+            <div className="quote-inline-form" style={{ display: 'flex', gap: '.75rem' }}>
               <textarea
                 className="input"
                 value={quoteText}
@@ -181,7 +181,7 @@ export default function BookDetailModal({ book, onClose, onRead }) {
           ) : (
             <>
               <button className="btn btn-ghost btn-sm" onClick={onClose}>Close</button>
-              {hasFile && (
+              {canOpenReader && (
                 <button className="btn btn-primary btn-sm" onClick={() => { onRead(book); onClose() }}>
                   <BookOpen size={13} /> Open Reader
                 </button>

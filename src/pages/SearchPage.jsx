@@ -57,7 +57,7 @@ export default function SearchPage() {
 
       <div className="page-body">
         {/* Search bar */}
-        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', maxWidth: 600 }}>
+        <div className="search-import-bar" style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', maxWidth: 600 }}>
           <div className="search-wrap" style={{ flex: 1 }}>
             <Search />
             <input
@@ -77,7 +77,7 @@ export default function SearchPage() {
 
         {/* Results */}
         {results.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
+          <div className="search-results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
             {results.map(book => {
               const info = book.volumeInfo
               const cover = info.imageLinks?.thumbnail?.replace('http:', 'https:')

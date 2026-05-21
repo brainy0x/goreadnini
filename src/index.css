@@ -323,18 +323,95 @@ textarea.input { resize: vertical; min-height: 80px; }
   .sidebar { transform: translateX(-100%); box-shadow: 4px 0 30px rgba(0,0,0,.6); }
   .sidebar.open { transform: translateX(0); }
   .main-content { margin-left: 0; }
-  .page-header { padding: 1rem 1rem .85rem; flex-wrap: wrap; gap: .75rem; }
+  .page-header {
+    padding: .95rem 1rem .9rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .8rem;
+  }
   .page-title { font-size: 1.45rem; }
   .page-subtitle { font-size: .88rem; }
   .page-body { padding: 1.25rem 1rem; overflow-x: hidden; }
-  .books-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .page-header .btn { align-self: flex-start; }
+  .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem .75rem; }
+  .book-card:hover { transform: none; }
+  .book-info { padding: .65rem .55rem; }
+  .book-title { font-size: .68rem; }
+  .book-author { font-size: .72rem; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+  .stat-card { padding: 1rem; min-width: 0; }
+  .stat-value { font-size: 1.6rem; overflow-wrap: anywhere; }
+  .stat-label { font-size: .78rem; line-height: 1.35; }
+  .card { border-radius: 6px; }
   .modal-overlay { padding: 0; align-items: flex-end; }
   .modal { max-width: 100%; border-radius: 12px 12px 0 0; max-height: 92vh; }
   .modal-wide { max-width: 100%; }
-  .badge-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .modal-header { padding: 1rem 1rem .8rem; gap: .75rem; }
+  .modal-title { font-size: .98rem; }
+  .modal-body { padding: 1rem; }
+  .modal-footer { padding: .85rem 1rem; flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; justify-content: center; min-width: 130px; }
+  .badge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+  .badge-item { padding: 1rem .75rem; }
   .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tab { white-space: nowrap; }
+  .tab { white-space: nowrap; padding: .65rem .9rem; font-size: .62rem; }
+  .shelf-tabs {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 0 1rem;
+    scrollbar-width: none;
+  }
+  .shelf-tabs::-webkit-scrollbar { display: none; }
+  .shelf-toolbar,
+  .search-import-bar,
+  .quote-inline-form,
+  .session-form {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .shelf-toolbar > div:last-child { align-self: flex-end; }
+  .book-list .card {
+    align-items: flex-start !important;
+    gap: .8rem !important;
+    padding: .75rem !important;
+  }
+  .book-list-meta {
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: .35rem !important;
+  }
+  .book-form-grid,
+  .quote-form-grid,
+  .book-edit-grid,
+  .goals-overview-grid,
+  .goal-form-grid,
+  .search-results-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .quote-actions { justify-content: stretch !important; }
+  .quote-actions .btn { flex: 1; justify-content: center; }
+  .quote-card,
+  .highlight-item {
+    padding: 1rem;
+  }
+  .quote-text { font-size: 1rem; line-height: 1.65; }
+  .highlight-text { font-size: .98rem; line-height: 1.6; }
+  .heatmap-grid {
+    grid-template-columns: repeat(26, 1fr) !important;
+    gap: 3px !important;
+  }
+  .heatmap-legend { justify-content: flex-end; }
+  .goal-card,
+  .goal-book-row {
+    align-items: flex-start !important;
+    gap: .9rem !important;
+  }
+  .toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+  .toast { max-width: none; }
   .reader-toolbar { padding: .6rem 1rem; }
   .reader-toolbar-title { font-size: .78rem; }
   .reader-controls { padding: .5rem 1rem; }
@@ -342,6 +419,9 @@ textarea.input { resize: vertical; min-height: 80px; }
 }
 
 @media (max-width: 380px) {
-  .books-grid { grid-template-columns: repeat(2, 1fr); }
+  .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .page-title { font-size: 1.25rem; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .heatmap-grid { grid-template-columns: repeat(20, 1fr) !important; }
+  .btn { letter-spacing: .06em; }
 }

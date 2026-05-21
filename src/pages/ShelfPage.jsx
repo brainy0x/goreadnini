@@ -42,7 +42,7 @@ export default function ShelfPage({ onRead }) {
 
       <div className="page-body">
         {/* Shelf tabs */}
-        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: '1.5rem', overflowX: 'auto' }}>
+        <div className="shelf-tabs" style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: '1.5rem', overflowX: 'auto' }}>
           {SHELVES.map(s => (
             <div
               key={s}
@@ -57,7 +57,7 @@ export default function ShelfPage({ onRead }) {
         </div>
 
         {/* Search bar */}
-        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+        <div className="shelf-toolbar" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center' }}>
           <div className="search-wrap" style={{ flex: 1 }}>
             <Search />
             <input
@@ -95,7 +95,7 @@ export default function ShelfPage({ onRead }) {
               ))}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="book-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {filtered.map(book => (
                 <div
                   key={book.id}
@@ -111,7 +111,7 @@ export default function ShelfPage({ onRead }) {
                     <div style={{ font: '500 0.9rem "Cinzel", serif', color: 'var(--text-primary)' }}>{book.title}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{book.author}</div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div className="book-list-meta" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     {book.shelf === 'reading' && (
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{book.progress || 0}%</span>
                     )}

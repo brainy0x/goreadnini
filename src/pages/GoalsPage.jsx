@@ -70,7 +70,7 @@ export default function GoalsPage() {
 
       <div className="page-body" style={{ maxWidth: 680 }}>
         {/* Goal cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="goals-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           {[
             {
               label: `${year} Yearly Goal`,
@@ -110,7 +110,7 @@ export default function GoalsPage() {
         {/* Edit goals */}
         <div className="card" style={{ padding: '1.5rem' }}>
           <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>SET YOUR GOALS</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="goal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Books to read in {year}</label>
               <input className="input" type="number" min="1" max="365" value={yearlyTarget} onChange={e => setYearlyTarget(e.target.value)} />
@@ -132,7 +132,7 @@ export default function GoalsPage() {
           <div style={{ marginTop: '1.5rem' }}>
             <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>IN PROGRESS</div>
             {books.filter(b => b.shelf === 'reading').map(b => (
-              <div key={b.id} className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <div key={b.id} className="card goal-book-row" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 {b.cover_url
                   ? <img src={b.cover_url} alt={b.title} style={{ width: 40, height: 56, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
                   : <div style={{ width: 40, height: 56, background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 3, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📖</div>

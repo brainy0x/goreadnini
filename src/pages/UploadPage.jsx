@@ -36,7 +36,7 @@ export default function UploadPage({ onRead }) {
         shelf:     form.shelf,
         file_name: file.name,
         file_type: isEpub ? 'epub' : 'pdf',
-        has_file:  true,   // flag so modal shows Open Reader
+        has_file:  false,
       }
 
       setProgress(30)
@@ -46,11 +46,11 @@ export default function UploadPage({ onRead }) {
       // Save actual file bytes to Supabase Storage
       const filePath = await saveFile(book.id, file)
       console.log('[UploadPage] File uploaded to Supabase:', filePath)
-      await updateBook(book.id, { file_path: filePath })
+      await updateBook(book.id, { file_path: filePath, has_file: true })
       console.log('[UploadPage] Firestore updated with file_path')
       setProgress(100)
 
-      const updatedBook = { ...book, file_path: filePath }
+      const updatedBook = { ...book, file_path: filePath, has_file: true }
       toast(`"${bookData.title}" added ✦`, 'success')
       setForm({ title: '', author: '', shelf: 'reading' })
 
@@ -81,7 +81,7 @@ export default function UploadPage({ onRead }) {
         {/* Details form */}
         <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
           <div className="form-label" style={{ marginBottom: '1rem', display: 'block' }}>Book Details (optional — auto-fills from filename)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div className="book-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div className="form-group" style={{ gridColumn: '1/-1', margin: 0 }}>
               <label className="form-label">Title</label>
               <input className="input" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="Auto-detected from filename" />
