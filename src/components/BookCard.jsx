@@ -4,7 +4,7 @@ export default function BookCard({ book, onClick }) {
   const shelfColor = { reading: '#e87090', finished: '#c9a84c', wishlist: '#8899dd', paused: '#a89070' }
 
   return (
-    <div className="book-card" onClick={onClick}>
+    <div className="book-card glass-card" onClick={onClick}>
       {book.cover_url ? (
         <img className="book-cover" src={book.cover_url} alt={book.title} loading="lazy" />
       ) : (

@@ -28,7 +28,9 @@ function getDeviceId() {
 // ── localStorage helpers ──
 const LS = {
   get: (key)       => { try { return JSON.parse(localStorage.getItem(`grn_${key}`) || '[]') } catch { return [] } },
-  set: (key, data) => { try { localStorage.setItem(`grn_${key}`, JSON.stringify(data)) } catch {} },
+  set: (key, data) => { try { localStorage.setItem(`grn_${key}`, JSON.stringify(data)) } catch {
+    // Storage can be full or unavailable in private browsing; remote sync still proceeds.
+  } },
 }
 
 export function BooksProvider({ children }) {

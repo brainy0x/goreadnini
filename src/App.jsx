@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
 import { ToastProvider } from './contexts/ToastContext'
 import { BooksProvider } from './contexts/BooksContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import AccessGate from './components/AccessGate'
 import Sidebar from './components/Sidebar'
 import EpubReader from './components/EpubReader'
@@ -163,9 +164,11 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <BooksProvider userId={null}>
-        <AppShell />
-      </BooksProvider>
+      <ThemeProvider>
+        <BooksProvider userId={null}>
+          <AppShell />
+        </BooksProvider>
+      </ThemeProvider>
     </ToastProvider>
   )
 }

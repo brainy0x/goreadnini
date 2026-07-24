@@ -16,7 +16,7 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         background_color: '#0c0906',
         theme_color: '#120e0a',
         categories: ['books', 'lifestyle'],
