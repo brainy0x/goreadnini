@@ -6,7 +6,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "potrait",
   "background_color": "#0c0906",
   "theme_color": "#120e0a",
   "categories": ["books", "lifestyle", "productivity"],
