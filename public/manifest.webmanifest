@@ -7,7 +7,7 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0c0906",
   "theme_color": "#120e0a",
   "categories": ["books", "lifestyle", "productivity"],
