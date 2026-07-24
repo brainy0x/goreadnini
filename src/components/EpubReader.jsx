@@ -26,7 +26,7 @@ export default function EpubReader({ book, onClose }) {
   const viewerRef       = useRef(null)
   const renditionRef    = useRef(null)
   const bookRef         = useRef(null)
-  const blobUrlRef      = useRef(null) // track blob URLs for cleanup
+  const blobUrlRef      = useRef(null)
   const watchedIframes  = useRef(new WeakSet())
   const iframeObserver  = useRef(null)
   const readerSettingsRef = useRef({ theme: 'light', fontSize: 100 })
@@ -79,7 +79,6 @@ export default function EpubReader({ book, onClose }) {
         console.warn('[EpubReader] Could not resolve internal link:', normalized)
       }
     }
-
     doc.addEventListener('click', listener, true)
     doc.__grnInterceptAttached = true
   }, [handleInternalLinkClick])
@@ -88,12 +87,10 @@ export default function EpubReader({ book, onClose }) {
     if (!doc || doc.__grnTapAttached) return
     const onTap = (event) => {
       try {
-        // don't flip when clicking links or interactive elements
         if (event.target.closest && event.target.closest('a, button, input, textarea, select')) return
         const sel = (doc.getSelection && doc.getSelection().toString && doc.getSelection().toString()) || ''
         if (sel && sel.trim()) return
 
-        // compute page X coordinate — for events inside iframe, event.clientX is relative to iframe
         const iframeRect = iframe?.getBoundingClientRect?.() || { left: 0 }
         const pageX = (event.clientX || 0) + (iframeRect.left || 0)
         const viewerRect = viewerRef.current?.getBoundingClientRect?.()
@@ -105,14 +102,20 @@ export default function EpubReader({ book, onClose }) {
         } else if (rel < 0.38) {
           renditionRef.current?.prev()
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
-
     doc.addEventListener('pointerup', onTap, true)
     doc.__grnTapAttached = true
   }, [])
+
+  // 🎯 FIXED: Predefined padding without breaking epubjs internal flow
+  const FONT_SIZE_PADDING = {
+    80: '55px',
+    90: '45px',
+    100: '35px',
+    115: '25px',
+    130: '15px'
+  }
 
   const applyThemeToIframe = useCallback((iframe) => {
     if (!iframe) return
@@ -126,6 +129,18 @@ export default function EpubReader({ book, onClose }) {
 
     const applyNow = () => {
       applyReaderThemeToDocument(doc, activeTheme, activeFontSize)
+      
+      // Apply the padding to keep text away from edges
+      const paddingAmount = FONT_SIZE_PADDING[activeFontSize] || '35px';
+      if (doc.body) {
+        // 🚫 DO NOT use flexbox. Let epubjs handle its own flow.
+        doc.body.style.display = 'block';
+        doc.body.style.margin = '0 auto';
+        doc.body.style.padding = `0 ${paddingAmount}`;
+        doc.body.style.width = '100%';
+        doc.body.style.boxSizing = 'border-box';
+      }
+
       attachInternalLinkInterceptors(doc)
       attachTapListenerToDocument(doc, iframe)
     }
@@ -147,7 +162,6 @@ export default function EpubReader({ book, onClose }) {
       }
       applyThemeToIframe(iframe)
     })
-
     if (!iframeObserver.current) {
       iframeObserver.current = new MutationObserver(() => watchIframes())
       iframeObserver.current.observe(viewerRef.current, { childList: true, subtree: true })
@@ -166,60 +180,54 @@ export default function EpubReader({ book, onClose }) {
   const applyTheme = useCallback((r, t, fs) => {
     const th = THEMES[t]
     if (!r?.themes) return
-
-    // Ensure the viewer wrapper itself is themed to avoid bleed during page transitions.
     if (viewerRef.current) {
       viewerRef.current.style.background = th.bg
       viewerRef.current.style.color = th.text
     }
-
     applyReaderThemeToRendition(r, t, fs)
     watchIframes()
   }, [watchIframes])
 
-  // Reflow reader on resize / orientation changes
+  // ── Handle screen resizing ────────────────────────────────────
+    // 🔥 SENIOR ENGINEER FIX: Use ResizeObserver to measure the container natively
   useEffect(() => {
-    const onResize = () => {
-      try { renditionRef.current?.resize?.() } catch {
-        // EPUB.js can be between view manager swaps during orientation changes.
-      }
-      try { if (renditionRef.current) applyTheme(renditionRef.current, theme, fontSize) } catch {
-        // A stale iframe can disappear while the browser is reflowing.
-      }
-      try { watchIframes() } catch {
-        // Mutation timing during teardown should not interrupt reading.
-      }
-    }
-    window.addEventListener('resize', onResize)
-    window.addEventListener('orientationchange', onResize)
-    return () => { window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize) }
-  }, [theme, fontSize, applyTheme, watchIframes])
+    if (!viewerRef.current || !renditionRef.current) return;
 
-  // Attach tap listener to the outer viewer for non-iframe areas (mobile tap-to-flip)
+    // Create a native observer that fires exactly when the container changes size
+    const resizeObserver = new ResizeObserver(() => {
+      // Use requestAnimationFrame to align with the browser's paint cycle
+      requestAnimationFrame(() => {
+        try {
+          renditionRef.current?.resize?.();
+        } catch {}
+      });
+    });
+
+    // Start observing the container div
+    resizeObserver.observe(viewerRef.current);
+    
+    // Cleanup on unmount
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []); // Runs only once on mount
+
+  // ── Tap to flip pages ─────────────────────────────────────────
   useEffect(() => {
     const onTap = (event) => {
       try {
-        // ignore if clicking toolbar/controls
         if (!viewerRef.current) return
         const toolbar = viewerRef.current.closest('.reader-panel')?.querySelector('.reader-toolbar')
         if (toolbar && toolbar.contains(event.target)) return
-
-        // ignore if clicking interactive elements
         if (event.target.closest && event.target.closest('a, button, input, textarea, select')) return
-
-        // selection guard
         const sel = (window.getSelection && window.getSelection().toString && window.getSelection().toString()) || ''
         if (sel && sel.trim()) return
-
         const rect = viewerRef.current.getBoundingClientRect()
         const rel = (event.clientX - rect.left) / rect.width
         if (rel > 0.62) renditionRef.current?.next()
         else if (rel < 0.38) renditionRef.current?.prev()
-      } catch {
-        // no-op
-      }
+      } catch {}
     }
-
     const node = viewerRef.current
     if (node) node.addEventListener('pointerup', onTap, true)
     return () => { if (node) node.removeEventListener('pointerup', onTap, true) }
@@ -232,18 +240,14 @@ export default function EpubReader({ book, onClose }) {
     const init = async () => {
       try {
         setLoadMsg('Loading file...')
-
         if (!book.file_path) {
           throw new Error('This book does not have an uploaded file attached yet. Please re-upload it from the Upload page.')
         }
-
-        // Get file from Supabase Storage
         const stored = await getFile(book.file_path)
         if (!stored) {
           throw new Error('File not found in Supabase Storage. Please re-upload the file.')
         }
         const file = stored?.file ?? stored
-        console.log('[EpubReader] Retrieved file from storage:', file)
         if (!(file instanceof Blob)) {
           throw new Error('Stored file is corrupted. Please re-upload.')
         }
@@ -253,7 +257,6 @@ export default function EpubReader({ book, onClose }) {
           (file.type === 'application/pdf' ? 'pdf' :
             (book.file_name?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'epub'))
 
-        // ── PDF path ─────────────────────────────────────────
         if (fileType === 'pdf') {
           setIsPdf(true)
           const url = URL.createObjectURL(file)
@@ -263,12 +266,8 @@ export default function EpubReader({ book, onClose }) {
           return
         }
 
-      // ── EPUB path ─────────────────────────────────────────
         setLoadMsg('Parsing epub...')
-
-        // 1. Get the raw ArrayBuffer from Supabase
         const buffer = await file.arrayBuffer()
-        console.log('[EpubReader] ArrayBuffer ready, size:', buffer.byteLength)
 
         setLoadMsg('Starting reader...')
         const epubModule = await import('epubjs')
@@ -279,26 +278,14 @@ export default function EpubReader({ book, onClose }) {
         }
 
         window.ePub = ePub
-
-        console.log('[EpubReader] Creating epub instance with buffer (binary mode)')
-        // 2. Pass the buffer AND explicitly tell epub.js it is binary data.
         const eb = await ePub(buffer, { encoding: 'binary' })
         bookRef.current = eb
-        console.log('[EpubReader] epub instance created, waiting for ready...')
-
-        // 3. Wait for the book's metadata and structure to be parsed
         await eb.ready
-        console.log('[EpubReader] EPUB ready, manifest loaded')
 
-        if (!mounted || !viewerRef.current) {
-          console.log('[EpubReader] Component unmounted or viewer ref missing')
-          return
-        }
+        if (!mounted || !viewerRef.current) return
 
         setLoadMsg('Rendering...')
-        console.log('[EpubReader] Calling renderTo on viewer...')
 
-        // renderTo must happen AFTER eb.ready
         const r = eb.renderTo(viewerRef.current, {
           width:   '100%',
           height:  '100%',
@@ -309,14 +296,13 @@ export default function EpubReader({ book, onClose }) {
           allowScriptedContent: false,
         })
         renditionRef.current = r
-        console.log('[EpubReader] renderTo complete, applying theme...')
 
         const toc = eb.navigation?.toc || []
         setTocItems(flattenToc(toc))
 
-        // Apply visual theme before display and keep it synced when pages rerender.
         applyTheme(r, readerSettingsRef.current.theme, readerSettingsRef.current.fontSize)
         watchIframes()
+        
         r.on('displayed', () => {
           applyTheme(r, readerSettingsRef.current.theme, readerSettingsRef.current.fontSize)
           watchIframes()
@@ -326,13 +312,17 @@ export default function EpubReader({ book, onClose }) {
           watchIframes()
         })
 
-        // Restore last position or go to start
         const saved = localStorage.getItem(`grn_loc_${book.id}`)
-        console.log('[EpubReader] Displaying EPUB at position:', saved || 'start')
         await r.display(saved || undefined)
-        console.log('[EpubReader] EPUB displayed successfully')
 
-        // Track location changes
+        // 🔥 FIX: Force layout correction AFTER the initial load
+        setTimeout(() => {
+          if (mounted && r) {
+            try { r.resize?.() } catch {}
+            try { watchIframes() } catch {}
+          }
+        }, 150)
+
         r.on('relocated', async (loc) => {
           if (!mounted) return
           const cfi = loc.start.cfi
@@ -343,20 +333,14 @@ export default function EpubReader({ book, onClose }) {
             const p   = Math.round((pct || 0) * 100)
             setProgress(p)
             updateBook(book.id, { progress: p })
-          } catch {
-            // Some EPUBs do not generate percentage locations consistently.
-          }
+          } catch {}
         })
 
-        // Generate locations for progress % (non-blocking)
         const locationsPromise = eb.generateLocations
           ? eb.generateLocations(1024)
           : eb.locations?.generate?.(1024)
-        Promise.resolve(locationsPromise).catch(() => {
-          // Progress can still be tracked by CFI even if generated locations fail.
-        })
+        Promise.resolve(locationsPromise).catch(() => {})
 
-        console.log('[EpubReader] Initialization complete, hiding loader')
         if (mounted) setLoading(false)
 
       } catch (e) {
@@ -372,36 +356,47 @@ export default function EpubReader({ book, onClose }) {
 
     return () => {
       mounted = false
-      if (bookRef.current)  { try { bookRef.current.destroy() } catch {
-        // EPUB.js may already have torn down its managers during iframe unload.
-      } }
+      if (bookRef.current)  { try { bookRef.current.destroy() } catch {} }
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
       stopWatchingIframes()
     }
   }, [book.id, book.file_path, book.file_name, book.file_type, applyTheme, stopWatchingIframes, updateBook, watchIframes])
 
-  // ── Theme / font changes ──────────────────────────────────────
+  // ── Theme / font changes (BRUTALLY SIMPLE FIX) ──────────────
   const changeTheme = (t) => {
     readerSettingsRef.current = { ...readerSettingsRef.current, theme: t }
     setTheme(t)
-    if (renditionRef.current) applyTheme(renditionRef.current, t, fontSize)
+    if (renditionRef.current) {
+      applyTheme(renditionRef.current, t, fontSize)
+      // 🔥 DIRTY HACK: Switch flow to scrolled and back to force a hard DOM rebuild
+      const currentFlow = renditionRef.current.settings.flow || 'paginated'
+      renditionRef.current.flow('scrolled')
+      setTimeout(() => {
+        if (renditionRef.current) {
+          renditionRef.current.flow(currentFlow)
+        }
+      }, 0)
+    }
   }
 
   const changeFontSize = (fs) => {
     readerSettingsRef.current = { ...readerSettingsRef.current, fontSize: fs }
     setFontSize(fs)
-    if (renditionRef.current) applyTheme(renditionRef.current, theme, fs)
-    // Force re-apply theme to any live iframes immediately so font-size changes take effect
+    if (renditionRef.current) {
+      // Apply theme to the overall rendition (handles epubjs internal)
+      applyTheme(renditionRef.current, theme, fs)
+      // Just in case epubjs wipes it, force a fake resize to make it trigger
+      renditionRef.current?.resize?.()
+    }
+    // 🎯 Force update the iframe padding directly
     try {
       if (viewerRef.current) {
         const iframes = viewerRef.current.querySelectorAll('iframe')
         iframes.forEach((f) => {
-          try { applyThemeToIframe(f) } catch { /* ignore transient iframe access errors */ }
+          try { applyThemeToIframe(f) } catch {}
         })
       }
-    } catch {
-      // no-op
-    }
+    } catch {}
   }
 
   // ── Actions ───────────────────────────────────────────────────
@@ -432,7 +427,6 @@ export default function EpubReader({ book, onClose }) {
     try {
       const href = item.href || item.id
       if (!href) return
-
       const handled = await displayEpubTarget({
         book: bookRef.current,
         rendition: renditionRef.current,
@@ -447,7 +441,6 @@ export default function EpubReader({ book, onClose }) {
     }
   }
 
-  // ── Shared toolbar renderer ───────────────────────────────────
   const Toolbar = ({ children }) => (
     <div className="reader-toolbar" style={{
       background: T.toolbar,
@@ -462,17 +455,12 @@ export default function EpubReader({ book, onClose }) {
       flexShrink: 0,
       zIndex: 10,
     }}>
-      {/* Left — close */}
       <button onClick={onClose} style={btnStyle(T)}>
         <X size={14} /> <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.68rem' }}>Close</span>
       </button>
-
-      {/* Center — title */}
       <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.82rem', color: T.btnColor, fontWeight: 500, letterSpacing: '.04em', flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {book.title}
       </span>
-
-      {/* Right — actions */}
       <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center', flexShrink: 0 }}>
         {children}
         <button onClick={handleDownload} style={iconBtnStyle(T)} title="Download">
@@ -482,10 +470,8 @@ export default function EpubReader({ book, onClose }) {
     </div>
   )
 
-  // ── Settings panel ────────────────────────────────────────────
   const SettingsPanel = () => (
     <div style={{ background: T.toolbar, borderBottom: `1px solid ${T.border}`, padding: '.55rem 1rem', display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
-      {/* Theme pills */}
       <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center' }}>
         <span style={labelStyle(T)}>THEME</span>
         {Object.entries(THEMES).map(([k, v]) => {
@@ -504,8 +490,6 @@ export default function EpubReader({ book, onClose }) {
           )
         })}
       </div>
-
-      {/* Font size */}
       <div style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>
         <span style={labelStyle(T)}>SIZE</span>
         {[80, 90, 100, 115, 130].map(s => (
@@ -523,7 +507,6 @@ export default function EpubReader({ book, onClose }) {
     </div>
   )
 
-  // ── Bottom progress bar + nav ─────────────────────────────────
   const BottomBar = ({ showNav = true }) => (
     <div className="reader-controls" style={{ background: T.toolbar, borderTop: `1px solid ${T.border}`, padding: '.55rem 1rem', display: 'flex', alignItems: 'center', gap: '.75rem', flexShrink: 0 }}>
       {showNav && (
@@ -545,23 +528,12 @@ export default function EpubReader({ book, onClose }) {
     </div>
   )
 
-  // ── Main render: Everything in one unified structure ────────────
-
-  // Error state (rendered as overlay in EPUB return below)
-  // PDF viewer
   if (isPdf) return (
     <div className={`reader-shell theme-${theme}`}>
       <div className="reader-panel">
-        <Toolbar>
-          {/* no extra epub-only buttons */}
-        </Toolbar>
-
+        <Toolbar />
         <div className="reader-view pdf-viewer">
-          <iframe
-            src={pdfViewerUrl || pdfBlobUrl}
-            title={book.title}
-            className="pdf-frame"
-          />
+          <iframe src={pdfViewerUrl || pdfBlobUrl} title={book.title} className="pdf-frame" />
           <div className="pdf-ios-fallback">
             <div style={{ fontSize: '3rem' }}>📄</div>
             <p style={{ fontFamily: 'Cinzel, serif', fontSize: '.9rem', maxWidth: 280, lineHeight: 1.6 }}>
@@ -572,28 +544,14 @@ export default function EpubReader({ book, onClose }) {
             </button>
           </div>
         </div>
-
         <BottomBar showNav={false} />
       </div>
-
-      <style>{`
-        .pdf-viewer { position: relative; flex: 1; overflow: hidden; }
-        .pdf-frame { width: 100%; height: 100%; border: none; background: #f7f2e8; }
-        .pdf-frame::-webkit-scrollbar { display: none; }
-        .pdf-ios-fallback { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; background: #2a2a2a; color: #ddd; text-align: center; padding: 2rem; }
-        @supports (-webkit-touch-callout: none) {
-          .pdf-ios-fallback { display: flex !important; }
-          embed[type="application/pdf"] { display: none !important; }
-        }
-      `}</style>
     </div>
   )
 
-  // ── EPUB viewer ───────────────────────────────────────────────
   return (
     <div className={`reader-shell theme-${theme}`}>
       <div className="reader-panel">
-      {/* Overlay: Loading state */}
       {loading && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', pointerEvents: 'none' }}>
           <div style={{ fontSize: '2.5rem', animation: 'pulse 2s ease infinite' }}>📖</div>
@@ -602,7 +560,6 @@ export default function EpubReader({ book, onClose }) {
         </div>
       )}
 
-      {/* Overlay: Error state */}
       {error && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 100, background: T.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '2rem', textAlign: 'center', pointerEvents: 'auto' }}>
           <div style={{ fontSize: '3rem' }}>📖</div>
@@ -611,7 +568,6 @@ export default function EpubReader({ book, onClose }) {
         </div>
       )}
 
-      {/* Main EPUB interface */}
       <Toolbar>
         <button onClick={handleHighlight} style={btnStyle(T)} title="Highlight selected text">
           <Highlighter size={13} /> <span style={{ fontFamily: 'Cinzel, serif', fontSize: '.65rem' }} className="hide-xs">Highlight</span>
@@ -633,7 +589,7 @@ export default function EpubReader({ book, onClose }) {
         <div style={{ position: 'absolute', inset: 0, zIndex: 130, background: 'rgba(8,6,4,0.78)', display: 'flex' }} onClick={() => setTocOpen(false)}>
           <div style={{ width: 'min(320px, 86vw)', height: '100%', background: T.toolbar, borderRight: `1px solid ${T.border}`, overflowY: 'auto', padding: '1rem', boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontFamily: 'Cinzel, serif', fontSize: '.8rem', color: T.btnColor, marginBottom: '.7rem' }}>Contents</div>
-            {tocItems.length === 0 && <div style={{ fontSize: '.82rem', color: T.btnColor, opacity: .8 }}>No chapter list available for this book.</div>}
+            {tocItems.length === 0 && <div style={{ fontSize: '.82rem', color: T.btnColor, opacity: .8 }}>No chapter list available.</div>}
             {tocItems.map((item, idx) => (
               <button key={`${item.href || item.id || idx}`} onClick={() => handleOpenChapter(item)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '.45rem 0', background: 'transparent', border: 'none', color: T.btnColor, cursor: 'pointer', fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '.9rem', lineHeight: 1.4 }}>
                 {item.label}
@@ -643,7 +599,6 @@ export default function EpubReader({ book, onClose }) {
         </div>
       )}
 
-      {/* The epub canvas — ALWAYS rendered so ref is accessible */}
       <div className="reader-view" style={{ background: T.bg }}>
         <div ref={viewerRef} style={{ width: '100%', height: '100%' }} />
       </div>
@@ -653,42 +608,32 @@ export default function EpubReader({ book, onClose }) {
       <style>{`
         .hide-xs { }
         @media(max-width:480px){ .hide-xs{ display:none } }
-
-        /* Reader shell improvements: compact glass morphism toolbar + controls */
         .reader-shell { display: flex; flex-direction: column; height: 100vh; width: 100%; }
         .reader-panel { display: flex; flex-direction: column; flex: 1; margin: 0 auto; max-width: 920px; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.12); background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.55)); }
-
         .reader-toolbar, .reader-controls { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: .6rem 1rem !important; gap: .6rem !important; }
         .reader-toolbar { border-bottom: 1px solid rgba(0,0,0,0.06) !important; }
         .reader-controls { border-top: 1px solid rgba(0,0,0,0.06) !important; }
-
         .reader-toolbar button, .reader-controls button { border-radius: 10px; padding: .35rem .7rem; }
         .reader-toolbar span, .reader-controls span { font-family: 'Cinzel', serif; }
-
         .reader-view { flex: 1 1 auto; min-height: 0; display: flex; align-items: stretch; }
         .reader-view > div, .reader-view iframe { width: 100%; height: 100%; }
-
-        /* Make toolbars compact on small screens but still accessible */
+        @media (max-width: 880px) {
+          .reader-panel { margin: 0.7rem auto !important; width: calc(100% - 1.4rem) !important; max-width: 100% !important; }
+        }
         @media (max-width: 520px) {
-          .reader-panel { border-radius: 10px; margin: 10px; }
+          .reader-panel { margin: 0.5rem auto !important; border-radius: 10px; width: calc(100% - 1rem) !important; max-width: 100% !important; }
           .reader-toolbar, .reader-controls { padding: .5rem .7rem !important; gap: .45rem !important; }
           .reader-toolbar span { font-size: .78rem !important; }
           .reader-toolbar .hide-xs, .reader-controls .hide-xs { display: none !important; }
         }
-
-        /* subtle glass effect */
         .reader-toolbar, .reader-controls { background: rgba(255,255,255,0.72); backdrop-filter: blur(10px); }
         .theme-dark .reader-toolbar, .theme-dark .reader-controls { background: rgba(20,16,12,0.6); }
-
-        /* tap target hints (invisible) */
-        .grn-tap-target { position: absolute; inset: 0; pointer-events: none; }
       `}</style>
     </div>
   </div>
   )
 }
 
-// ── Style helpers ─────────────────────────────────────────────
 const btnStyle = (T) => ({
   background: 'rgba(255,255,255,0.08)',
   border: `1px solid ${T.border}`,
