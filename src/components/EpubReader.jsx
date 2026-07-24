@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, ChevronLeft, ChevronRight, Bookmark, Highlighter, Settings, Download, Sun, Moon, Coffee, BookOpen, Lock, Unlock } from 'lucide-react' 
+import { X, ChevronLeft, ChevronRight, Bookmark, Highlighter, Settings, Download, Sun, Moon, Coffee, BookOpen} from 'lucide-react' 
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -44,10 +44,24 @@ export default function EpubReader({ book, onClose }) {
   const [fileBlob,     setFileBlob]     = useState(null)
   const [tocItems,     setTocItems]     = useState([])
   const [tocOpen,      setTocOpen]      = useState(false)
-  const [isOrientationLocked, setIsOrientationLocked] = useState(false)
-
   const pdfViewerUrl = pdfBlobUrl ? `${pdfBlobUrl}#toolbar=0&navpanes=0&scrollbar=1` : ''
 
+    // ── Hand orientation control back to the native OS ────────────
+  useEffect(() => {
+    // We use a small delay to ensure the component has fully mounted
+    const timeoutId = setTimeout(() => {
+      if (window.screen && window.screen.orientation) {
+        try {
+          // Unlocks any JS locks, handing control entirely back to the Android OS
+          window.screen.orientation.unlock();
+        } catch (e) {
+          // If no lock was active, this throws a harmless error. We ignore it.
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
   const T = THEMES[theme]
 
   useEffect(() => {
@@ -481,9 +495,6 @@ export default function EpubReader({ book, onClose }) {
       </span>
       <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center', flexShrink: 0 }}>
         {children}
-        <button onClick={toggleOrientationLock} style={iconBtnStyle(T)} title={isOrientationLocked ? "Unlock rotation" : "Lock portrait"}>
-          {isOrientationLocked ? <Lock size={14} /> : <Unlock size={14} />}
-        </button>
         <button onClick={handleDownload} style={iconBtnStyle(T)} title="Download">
           <Download size={14} />
         </button>
