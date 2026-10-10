@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Library, Search, Upload, Bookmark, BarChart2 } from 'lucide-react'
+import { Library, Search, Feather, Bookmark, BarChart2 } from 'lucide-react'
 import { ToastProvider } from './contexts/ToastContext'
 import { BooksProvider, useBooks } from './contexts/BooksContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -16,6 +16,7 @@ import SearchPage from './pages/SearchPage'
 import UploadPage from './pages/UploadPage'
 import NotesPage from './pages/NotesPage'
 import ProgressPage from './pages/ProgressPage'
+import HavenPage from './pages/HavenPage'
 
 const ACCESS_CODE_KEY = 'grn_access'
 
@@ -24,8 +25,8 @@ const isPdfBook = (b) => b.file_type === 'pdf' || /\.pdf$/i.test(b.file_name || 
 const MOBILE_TABS = [
   { id: 'shelf',    label: 'Library',  icon: Library },
   { id: 'search',   label: 'Find',     icon: Search },
-  { id: 'upload',   label: 'Upload',   icon: Upload },
   { id: 'notes',    label: 'Notes',    icon: Bookmark },
+  { id: 'haven',    label: 'Haven',    icon: Feather },
   { id: 'progress', label: 'Progress', icon: BarChart2 },
 ]
 
@@ -82,6 +83,7 @@ function AppShell() {
       case 'upload':     return <UploadPage onRead={setReadingBook} />
       case 'notes':      return <NotesPage />
       case 'progress':   return <ProgressPage />
+      case 'haven':      return <HavenPage />
       default:           return <ShelfPage onRead={setReadingBook} onNavigate={navigate} isMobile={isMobile} />
     }
   }

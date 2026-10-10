@@ -102,8 +102,6 @@ export default function UploadPage({ onRead }) {
               <select className="select" value={form.shelf} onChange={e => setForm(p => ({ ...p, shelf: e.target.value }))}>
                 <option value="reading">Currently Reading</option>
                 <option value="finished">Finished</option>
-                <option value="wishlist">Want to Read</option>
-                <option value="paused">Paused</option>
               </select>
             </div>
             <div className="form-group" style={{ gridColumn: '1/-1', margin: 0 }}>

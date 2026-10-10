@@ -391,3 +391,58 @@ textarea.input { border-radius: 14px; }
 .st-accent input[type="color"] { width: 54px; height: 38px; padding: 2px; border: 1px solid var(--border-bright); border-radius: 10px; background: none; cursor: pointer; }
 .st-link { margin-left: auto; background: none; border: 0; color: var(--accent-light); font: 600 .8rem 'Inter', system-ui, sans-serif; cursor: pointer; }
 .st-glitter { margin: 0; }
+
+/* ── Sort control ── */
+.lib-head-right { display: inline-flex; align-items: center; gap: .75rem; }
+.lib-sort { position: relative; display: inline-flex; align-items: center; gap: .35rem; padding: 0 .7rem 0 .75rem; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid var(--border); color: var(--text-secondary); }
+.lib-sort select { appearance: none; -webkit-appearance: none; background: transparent; border: 0; outline: 0; color: inherit; font: 500 .78rem 'Inter', system-ui, sans-serif; padding: .38rem .1rem; cursor: pointer; max-width: 9.5rem; }
+.lib-sort option { background: var(--surf-b); color: var(--text-primary); }
+.lib-sort:hover { background: rgba(255,255,255,.12); }
+.lib-sort-label { font-size: .75rem; font-weight: 600; color: var(--accent-light); }
+.lib-sort { border-color: var(--border-bright); }
+
+/* ═══ The Haven ═══ */
+.hv-wait { text-align: center; padding: 4rem 0; color: var(--text-muted); }
+.hv-lock { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+.hv-pin { width: 100%; max-width: 320px; text-align: center; }
+.hv-pin-icon { width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--accent-rgb), .16); border: 1px solid rgba(var(--accent-rgb), .35); color: var(--accent-light); }
+.hv-pin h2 { font-size: 1.35rem; font-weight: 700; }
+.hv-pin-hint { margin-top: .35rem; font-size: .88rem; color: var(--text-muted); }
+.hv-dots { display: flex; justify-content: center; gap: 1rem; margin: 1.6rem 0 .5rem; }
+.hv-dots i { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--accent-light); transition: background .15s, transform .15s; }
+.hv-dots i.on { background: var(--accent); border-color: var(--accent); transform: scale(1.1); }
+.hv-dots.shake { animation: hvShake .4s ease; }
+@keyframes hvShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-9px); } 75% { transform: translateX(9px); } }
+.hv-pin-error { min-height: 1.3rem; font-size: .82rem; color: #ff9aa8; }
+.hv-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: .8rem auto 0; max-width: 270px; }
+.hv-keys button { height: 62px; border-radius: 50%; border: 1px solid var(--border); background: rgba(255,255,255,.07); color: var(--text-primary); font: 600 1.4rem 'Inter', system-ui, sans-serif; cursor: pointer; display: grid; place-items: center; transition: background .12s, transform .08s; }
+.hv-keys button:active { background: rgba(var(--accent-rgb), .3); transform: scale(.94); }
+.hv-keys button:disabled { opacity: .5; }
+.hv-link { margin-top: 1.2rem; background: none; border: 0; color: var(--accent-light); font: 600 .85rem 'Inter', system-ui, sans-serif; cursor: pointer; }
+.hv-forgot { margin-top: 1.2rem; text-align: left; font-size: .82rem; color: var(--text-muted); }
+.hv-forgot p { margin-bottom: .6rem; }
+.hv-forgot .input { margin-bottom: .6rem; }
+.hv-forgot div { display: flex; gap: .5rem; justify-content: flex-end; }
+
+.hv-empty svg { color: var(--accent-light); }
+.hv-list { display: flex; flex-direction: column; gap: .75rem; padding-bottom: 2rem; }
+.hv-card { text-align: left; width: 100%; padding: 1rem 1.15rem; border-radius: 18px; border: 1px solid var(--border); background: var(--card-bg); color: inherit; cursor: pointer; font-family: inherit; transition: border-color .2s; }
+.hv-card:hover { border-color: var(--border-bright); }
+.hv-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: .4rem; }
+.hv-kind { font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: .15rem .55rem; border-radius: 999px; background: rgba(var(--accent-rgb), .18); color: var(--accent-light); }
+.hv-date { font-size: .72rem; color: var(--text-muted); }
+.hv-card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: .3rem; }
+.hv-card-preview { font-family: 'Literata', Georgia, serif; font-size: .9rem; line-height: 1.6; color: var(--text-secondary); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.hv-editor { position: fixed; inset: 0; z-index: 600; display: flex; flex-direction: column; background: linear-gradient(160deg, var(--bg-g1) 0%, var(--bg-g2) 55%, var(--bg-g3) 100%); animation: slideUp .2s ease; }
+.hv-editor-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: calc(env(safe-area-inset-top) + 10px) 12px 8px; }
+.hv-round { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: rgba(255,255,255,.07); color: var(--text-primary); display: grid; place-items: center; cursor: pointer; }
+.hv-danger { color: #ff9aa8; }
+.hv-status { flex: 1; text-align: center; font-size: .78rem; color: var(--text-muted); }
+.hv-editor-body { flex: 1; overflow-y: auto; width: 100%; max-width: 720px; margin: 0 auto; padding: .5rem 1.25rem calc(env(safe-area-inset-bottom) + 3rem); }
+.hv-kinds { display: flex; gap: .45rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.hv-kinds button { padding: .4rem .9rem; border-radius: 999px; border: 0; background: rgba(255,255,255,.07); color: var(--text-secondary); font: 500 .8rem 'Inter', system-ui, sans-serif; cursor: pointer; }
+.hv-kinds button.active { background: var(--accent); color: var(--ink); font-weight: 600; }
+.hv-title { width: 100%; background: none; border: 0; outline: 0; color: var(--text-primary); font: 700 1.6rem 'Literata', Georgia, serif; padding: .3rem 0; margin-bottom: .6rem; }
+.hv-title::placeholder, .hv-text::placeholder { color: var(--text-muted); opacity: .6; }
+.hv-text { width: 100%; min-height: 55vh; resize: none; background: none; border: 0; outline: 0; color: var(--text-primary); font: 400 1.1rem/1.9 'Literata', Georgia, serif; white-space: pre-wrap; overflow: hidden; }

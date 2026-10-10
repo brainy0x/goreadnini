@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Upload, Search, X, Settings as SettingsIcon } from 'lucide-react'
+import { Upload, Search, X, Settings as SettingsIcon, ArrowUpDown } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 import BookCard from '../components/BookCard'
 import BookCover from '../components/BookCover'
@@ -10,11 +10,47 @@ import { displayBook, CATEGORIES, categoryOf } from '../lib/bookDisplay'
 import { enrichBook, lazyFileLoader } from '../lib/bookEnrich'
 import { localizeCover, isRemoteCover } from '../lib/coverCache'
 
-const SHELVES = ['all', 'reading', 'finished', 'wishlist', 'paused']
+const SHELVES = ['all', 'reading', 'finished']
 
 // left to right: swiping left moves along this list, swiping right moves back
 const SECTION_ORDER = ['novel', 'academic', 'all']
 const SECTION_LABELS = { novel: 'Novels', academic: 'Academic', all: 'All' }
+
+// How the grid of books can be ordered
+const SORTS = [
+  { id: 'added',      label: 'Recently added' },
+  { id: 'read',       label: 'Recently read' },
+  { id: 'title',      label: 'Title A–Z' },
+  { id: 'title-desc', label: 'Title Z–A' },
+  { id: 'author',     label: 'Author A–Z' },
+  { id: 'progress',   label: 'Progress' },
+  { id: 'rating',     label: 'Rating' },
+  { id: 'finished',   label: 'Date finished' },
+]
+
+const byText = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })
+const time = (value) => (value ? Date.parse(value) || 0 : 0)
+
+function sortBooks(list, key) {
+  const title = (b) => displayBook(b).title
+  const author = (b) => displayBook(b).author
+  const comparers = {
+    added: (a, b) => time(b.created_at) - time(a.created_at),
+    read: (a, b) => time(b.last_read_at) - time(a.last_read_at) || time(b.created_at) - time(a.created_at),
+    title: (a, b) => byText(title(a), title(b)),
+    'title-desc': (a, b) => byText(title(b), title(a)),
+    author: (a, b) => {
+      // books with no author go last
+      if (!author(a) && author(b)) return 1
+      if (author(a) && !author(b)) return -1
+      return byText(author(a), author(b)) || byText(title(a), title(b))
+    },
+    progress: (a, b) => (b.progress || 0) - (a.progress || 0),
+    rating: (a, b) => (b.rating || 0) - (a.rating || 0),
+    finished: (a, b) => time(b.date_finished) - time(a.date_finished),
+  }
+  return [...list].sort(comparers[key] || comparers.added)
+}
 
 function ProgressRing({ value }) {
   const r = 20
@@ -53,6 +89,18 @@ export default function ShelfPage({ onRead, onNavigate, isMobile }) {
   const category = isMobile && storedCategory === 'all' ? 'novel' : storedCategory
   const order = isMobile ? ['novel', 'academic'] : SECTION_ORDER
   const [slide, setSlide] = useState('')
+  // the chosen order, remembered between visits
+  const [sortKey, setSortKey] = useState(() => {
+    try {
+      const saved = localStorage.getItem('grn_library_sort')
+      return SORTS.some(o => o.id === saved) ? saved : 'added'
+    } catch { return 'added' }
+  })
+  const pickSort = (id) => {
+    setSortKey(id)
+    try { localStorage.setItem('grn_library_sort', id) } catch { /* storage full */ }
+  }
+
   const pickCategory = (id) => {
     if (id === category) return
     setSlide(order.indexOf(id) > order.indexOf(category) ? 'from-right' : 'from-left')
@@ -173,6 +221,7 @@ export default function ShelfPage({ onRead, onNavigate, isMobile }) {
       (!q || title.toLowerCase().includes(q) || author.toLowerCase().includes(q))
   })
 
+  const shown = sortBooks(filtered, sortKey)
   const showHome = !query && activeShelf === 'all'
   const cont = continueBook && displayBook(continueBook)
   const sectionTitle = showHome ? (category === 'all' ? 'All Books' : `All ${CATEGORIES.find(c => c.id === category).label}`)
@@ -283,11 +332,20 @@ export default function ShelfPage({ onRead, onNavigate, isMobile }) {
           <section className="lib-section">
             <div className="lib-section-head">
               <h3>{sectionTitle}</h3>
-              <span>{filtered.length}</span>
+              <div className="lib-head-right">
+                <span>{filtered.length}</span>
+                <label className="lib-sort">
+                  <ArrowUpDown size={13} />
+                  <span className="lib-sort-label">Sort</span>
+                  <select value={sortKey} onChange={e => pickSort(e.target.value)} aria-label="Sort books">
+                    {SORTS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                  </select>
+                </label>
+              </div>
             </div>
             {filtered.length > 0 ? (
               <div className="lib-grid">
-                {filtered.map(b => <BookCard key={b.id} book={b} onClick={() => setSelectedBook(b)} />)}
+                {shown.map(b => <BookCard key={b.id} book={b} onClick={() => setSelectedBook(b)} />)}
               </div>
             ) : (
               <div className="lib-empty">

@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-import { PanelLeft, BookOpen, Library, Bookmark, Quote, BarChart2, Target, Award, Sparkles, Search, Upload, Moon, Wifi, WifiOff, Loader, Cloud } from 'lucide-react'
+import { Feather, PanelLeft, BookOpen, Library, Bookmark, Quote, BarChart2, Target, Award, Sparkles, Search, Upload, Moon, Wifi, WifiOff, Loader, Cloud } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { section: 'You' },
   { id: 'notes',    label: 'Notes',        icon: Bookmark  },
   { id: 'progress', label: 'Progress',     icon: BarChart2 },
+  { id: 'haven',    label: 'Haven',        icon: Feather   },
 ]
 
 function SyncBadge({ status }) {

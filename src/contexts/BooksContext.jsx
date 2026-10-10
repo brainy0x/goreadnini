@@ -2,7 +2,7 @@
 // Syncs to Firestore for cross-device metadata. Files stored in Supabase Storage.
 // All devices with same access code share the same workspace and see each other's books.
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { db, isConfigured as firebaseReady } from '../lib/firebaseConfig'
 import {
   collection, doc, setDoc, deleteDoc,
@@ -41,6 +41,7 @@ export function BooksProvider({ children }) {
   const [sessions,   setSessions]   = useState([])
   const [goals,      setGoals]      = useState([])
   const [siteBookmarks, setSiteBookmarks] = useState([])
+  const [writings, setWritings] = useState([])
   const [settings, setSettings] = useState([])
   const [loading,    setLoading]    = useState(true)
   const [syncing,    setSyncing]    = useState(false)
@@ -65,6 +66,7 @@ export function BooksProvider({ children }) {
       setSessions(LS.get('sessions'))
       setGoals(LS.get('goals'))
       setSiteBookmarks(LS.get('site_bookmarks'))
+      setWritings(LS.get('writings'))
       setSettings(LS.get('settings'))
       setLoading(false)
       return
@@ -104,6 +106,7 @@ export function BooksProvider({ children }) {
     subscribe('sessions',  setSessions)
     subscribe('goals',     setGoals)
     subscribe('site_bookmarks', setSiteBookmarks)
+    subscribe('writings', setWritings)
     subscribe('settings', setSettings)
 
     setLoading(false)
@@ -273,6 +276,28 @@ export function BooksProvider({ children }) {
   }, [writeDoc])
 
   // ─────────────────────────────────────────────────────────────
+  // WRITINGS (poems, stories, journal, notes in the Haven)
+  // ─────────────────────────────────────────────────────────────
+  const addWriting = useCallback(async (data) => {
+    const now = new Date().toISOString()
+    const item = { title: '', body: '', kind: 'poem', ...data, id: crypto.randomUUID(), created_at: now, updated_at: now }
+    setWritings(prev => { const next = [item, ...prev]; LS.set('writings', next); return next })
+    await writeDoc('writings', item.id, item)
+    return item
+  }, [writeDoc])
+
+  const updateWriting = useCallback(async (id, updates) => {
+    const patch = { ...updates, updated_at: new Date().toISOString() }
+    setWritings(prev => { const next = prev.map(w => w.id === id ? { ...w, ...patch } : w); LS.set('writings', next); return next })
+    await writeDoc('writings', id, patch)
+  }, [writeDoc])
+
+  const deleteWriting = useCallback(async (id) => {
+    setWritings(prev => { const next = prev.filter(w => w.id !== id); LS.set('writings', next); return next })
+    await removeDoc('writings', id)
+  }, [removeDoc])
+
+  // ─────────────────────────────────────────────────────────────
   // SESSIONS
   // ─────────────────────────────────────────────────────────────
   const addSession = useCallback(async (data) => {
@@ -302,9 +327,14 @@ export function BooksProvider({ children }) {
     }
   }, [goals, writeDoc])
 
+  const shelvedBooks = useMemo(
+    () => books.map(b => (b.shelf === 'wishlist' || b.shelf === 'paused' ? { ...b, shelf: 'reading' } : b)),
+    [books]
+  )
+
   return (
     <BooksContext.Provider value={{
-      books, highlights, bookmarks, quotes, sessions, goals, siteBookmarks,
+      books: shelvedBooks, highlights, bookmarks, quotes, sessions, goals, siteBookmarks, writings,
       readerPrefs: settings.find(x => x.id === 'reader') || null, saveReaderPrefs,
       profile: settings.find(x => x.id === 'profile') || null, saveProfile,
       loading, syncing, syncStatus,
@@ -314,6 +344,7 @@ export function BooksProvider({ children }) {
       addQuote, deleteQuote,
       addSession, saveGoal,
       addSiteBookmark, updateSiteBookmark, deleteSiteBookmark,
+      addWriting, updateWriting, deleteWriting,
     }}>
       {children}
     </BooksContext.Provider>

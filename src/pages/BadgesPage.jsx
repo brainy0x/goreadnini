@@ -16,7 +16,6 @@ const BADGES = [
   { id: 'streak_30', icon: '💫', name: 'Eternal Flame', desc: 'Read 30 days in a row', check: ({ sessions }) => calcStreak(sessions) >= 30 },
   { id: 'night_reader', icon: '🌙', name: 'Night Owl', desc: 'Read after midnight (logged 5 late sessions)', check: () => false }, // fun placeholder
   { id: 'genre_collector', icon: '🗺️', name: 'Genre Explorer', desc: 'Read 3 different genres', check: ({ books }) => new Set(books.filter(b => b.genre).map(b => b.genre.split(',')[0].trim())).size >= 3 },
-  { id: 'wishlist_20', icon: '⭐', name: 'Dreamer', desc: 'Add 20 books to wishlist', check: ({ books }) => books.filter(b => b.shelf === 'wishlist').length >= 20 },
   { id: 'reviewer', icon: '🖊️', name: 'Critic', desc: 'Write a review', check: ({ books }) => books.some(b => b.review?.trim()) },
   { id: 'five_stars', icon: '🌹', name: 'Beloved', desc: 'Give a book 5 stars', check: ({ books }) => books.some(b => b.rating === 5) },
 ]

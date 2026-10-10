@@ -10,7 +10,7 @@ import { shrinkCoverBlob } from '../lib/epubCover'
 import { localizeCover } from '../lib/coverCache'
 import BookCover from './BookCover'
 
-const SHELVES = ['reading', 'finished', 'wishlist', 'paused']
+const SHELVES = ['reading', 'finished']
 
 export default function BookDetailModal({ book: initial, onClose, onRead }) {
   const { books, updateBook, deleteBook, addQuote } = useBooks()
