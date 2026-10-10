@@ -8,10 +8,10 @@ function devApi() {
   return {
     name: 'dev-api-download',
     configureServer(server) {
-      server.middlewares.use('/api/download', async (req, res) => {
+      for (const route of ['download', 'cover']) server.middlewares.use(`/api/${route}`, async (req, res) => {
         try {
-          const { default: handler } = await server.ssrLoadModule('/api/download.js')
-          const response = await handler(new Request('http://localhost/api/download' + req.url, { method: req.method }))
+          const { default: handler } = await server.ssrLoadModule(`/api/${route}.js`)
+          const response = await handler(new Request(`http://localhost/api/${route}` + req.url, { method: req.method }))
           res.statusCode = response.status
           response.headers.forEach((value, key) => res.setHeader(key, value))
           if (response.body) Readable.fromWeb(response.body).pipe(res)
@@ -53,6 +53,16 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
+          {
+            // Safety net: any cover still shown from another site is kept for offline use
+            urlPattern: ({ request, url }) => request.destination === 'image' && url.origin !== self.location.origin,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'remote-covers',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',

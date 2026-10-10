@@ -56,7 +56,7 @@ export async function looksLikeCover(blob) {
 }
 
 /** Shrink an image to a small JPEG data URL so it can live in the book record. */
-export async function shrinkCoverBlob(blob, maxWidth = 360) {
+export async function shrinkCoverBlob(blob, maxWidth = 320) {
   const bitmap = await createImageBitmap(blob)
   const scale = Math.min(1, maxWidth / bitmap.width)
   const canvas = document.createElement('canvas')
@@ -64,7 +64,7 @@ export async function shrinkCoverBlob(blob, maxWidth = 360) {
   canvas.height = Math.round(bitmap.height * scale)
   canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
   bitmap.close?.()
-  return canvas.toDataURL('image/jpeg', 0.82)
+  return canvas.toDataURL('image/jpeg', 0.8)
 }
 
 /** Returns the cover as a Blob, or null if the book has no usable image. */

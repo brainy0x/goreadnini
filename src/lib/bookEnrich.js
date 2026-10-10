@@ -5,6 +5,7 @@ import { lookupBook } from './bookLookup'
 import { displayBook } from './bookDisplay'
 import { getFile } from './fileStorage'
 import { extractEpubCover, shrinkCoverBlob } from './epubCover'
+import { localizeCover, isRemoteCover } from './coverCache'
 
 const FIELDS = ['description', 'cover_url', 'pages_total', 'language', 'genre', 'public_rating']
 const inFlight = new Set()
@@ -125,6 +126,8 @@ export async function enrichBook(book, updateBook, opts = {}) {
     const updates = {}
     for (const k of FIELDS) if (patch[k] && !book[k]) updates[k] = patch[k]
     if (patch.lookup_author && !book.author) updates.author = patch.lookup_author
+    // a cover found online is downloaded and stored with the book, so it works offline and syncs
+    if (updates.cover_url && isRemoteCover(updates.cover_url)) updates.cover_url = await localizeCover(updates.cover_url)
     if (opts.coverOnly) {
       // remember that we looked, so we don't download the file again on every launch
       updates.cover_checked = true

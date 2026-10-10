@@ -7,6 +7,7 @@ import { displayBook } from '../lib/bookDisplay'
 import { languageName } from '../lib/bookLookup'
 import { enrichBook, lazyFileLoader } from '../lib/bookEnrich'
 import { shrinkCoverBlob } from '../lib/epubCover'
+import { localizeCover } from '../lib/coverCache'
 import BookCover from './BookCover'
 
 const SHELVES = ['reading', 'finished', 'wishlist', 'paused']
@@ -69,7 +70,9 @@ export default function BookDetailModal({ book: initial, onClose, onRead }) {
   const useCoverLink = async () => {
     const url = coverLink.trim()
     if (!/^https?:\/\//i.test(url)) { toast('Paste a full image link starting with http', 'error'); return }
-    await setCover(url)
+    setCoverBusy('Saving…')
+    await setCover(await localizeCover(url))
+    setCoverBusy('')
     setCoverLink('')
     toast('Cover updated', 'success')
   }

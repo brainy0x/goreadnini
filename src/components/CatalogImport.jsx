@@ -4,6 +4,7 @@ import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { saveFile } from '../lib/fileStorage'
 import { enrichBook } from '../lib/bookEnrich'
+import { localizeCover } from '../lib/coverCache'
 import { searchCatalog, downloadCatalogBook, CATALOGS } from '../lib/catalogs'
 import BookCover from './BookCover'
 
@@ -59,6 +60,7 @@ export default function CatalogImport({ onRead }) {
     try {
       const file = await downloadCatalogBook(item)
       setStatus('Saving…')
+      const cover = await localizeCover(item.cover_url)
       book = await addBook({
         title: item.title,
         author: item.author,
@@ -67,7 +69,7 @@ export default function CatalogImport({ onRead }) {
         file_type: 'epub',
         has_file: false,
         source_id: item.sourceId,
-        cover_url: item.cover_url,
+        cover_url: cover,
         description: item.description,
         genre: item.genre,
         language: item.language,

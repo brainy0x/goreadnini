@@ -7,6 +7,7 @@ import BookDetailModal from '../components/BookDetailModal'
 import GreetingNames from '../components/GreetingNames'
 import { displayBook } from '../lib/bookDisplay'
 import { enrichBook, lazyFileLoader } from '../lib/bookEnrich'
+import { localizeCover, isRemoteCover } from '../lib/coverCache'
 
 const SHELVES = ['all', 'reading', 'finished', 'wishlist', 'paused']
 
@@ -53,12 +54,14 @@ export default function ShelfPage({ onRead, onNavigate }) {
   const unmountedRef = useRef(false)
   useEffect(() => () => { unmountedRef.current = true }, [])
   const triedCoverRef = useRef(new Set())
+  const triedLocalRef = useRef(new Set())
   const [backfillTick, setBackfillTick] = useState(0)
   useEffect(() => {
     if (loading || runningRef.current) return
     const infoQueue = books.filter(b => !b.lookup_done && !triedRef.current.has(b.id))
     const coverQueue = books.filter(b => b.lookup_done && !b.cover_url && !b.cover_checked && !triedCoverRef.current.has(b.id))
-    if (!infoQueue.length && !coverQueue.length) return
+    const localQueue = books.filter(b => isRemoteCover(b.cover_url) && !triedLocalRef.current.has(b.id))
+    if (!infoQueue.length && !coverQueue.length && !localQueue.length) return
     runningRef.current = true
     ;(async () => {
       for (const b of infoQueue) {
@@ -73,6 +76,15 @@ export default function ShelfPage({ onRead, onNavigate }) {
         triedCoverRef.current.add(b.id)
         await enrichBook(b, updateBook, { coverOnly: true, loadFile: lazyFileLoader(b) })
         await new Promise(r => setTimeout(r, 800))
+      }
+      // covers that are still links to another site: download them once and keep them with the book
+      for (const b of localQueue) {
+        if (unmountedRef.current) break
+        triedLocalRef.current.add(b.id)
+        const stored = await localizeCover(b.cover_url)
+        if (stored && stored !== b.cover_url) {
+          await updateBook(b.id, { cover_url: stored, ...(b.updated_at ? { updated_at: b.updated_at } : {}) })
+        }
       }
       runningRef.current = false
       // books that just finished the first stage may now need the cover stage
