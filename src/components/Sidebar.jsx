@@ -46,6 +46,7 @@ export default function Sidebar({ activePage, onNavigate, isMobile, isOpen, onCl
         <button className="rail-toggle" onClick={onToggle} aria-label="Expand menu"><PanelLeft size={20} /></button>
         <div className="sidebar-logo">
           <h1>📚<span className="logo-text"> GoreadNini</span></h1>
+          <p>Her books, her pace, her realm.</p>
         </div>
 
         <nav className="sidebar-nav">

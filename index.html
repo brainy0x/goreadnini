@@ -67,12 +67,20 @@
         line-height: 1.15; max-width: 90vw; opacity: 0; animation: spUp .8s ease 1.4s forwards;
       }
       .sp-tag { margin: 1rem 0 0; font-size: .8rem; color: #8f97d9; opacity: 0; animation: spUp .8s ease 1.8s forwards; }
+      /* The signature writes itself in from the left, last of all */
+      .sp-sign {
+        display: inline-block; margin: 1.6rem 0 0; font-family: 'Caveat', 'Segoe Script', 'Bradley Hand', 'Snell Roundhand', cursive;
+        font-size: 1.55rem; font-weight: 500; color: #c3c9ff; transform: rotate(-2deg);
+        clip-path: inset(-4px 100% -8px -4px); animation: spWrite 1.7s cubic-bezier(.4,.1,.3,1) 2.4s forwards;
+      }
+      @keyframes spWrite { to { clip-path: inset(-4px -4px -8px -4px); } }
       @keyframes spUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
       @media (prefers-reduced-motion: reduce) {
         .sp-glow, .sp-flip { animation: none; }
         .sp-flip { display: none; }
-        .sp-book, .sp-hello, .sp-name, .sp-tag { animation: spFade .5s ease forwards; transform: none; }
+        .sp-book, .sp-hello, .sp-name { animation: spFade .5s ease forwards; transform: none; }
+        .sp-sign { animation: none; clip-path: none; opacity: 0; animation: spFade .6s ease 1s forwards; }
         @keyframes spFade { to { opacity: 1; } }
       }
     </style>
@@ -90,6 +98,7 @@
       </div>
       <p class="sp-hello">Welcome back,</p>
       <h1 class="sp-name" id="sp-name">Nini</h1>
+      <p class="sp-sign">with love, your man</p>
     </div>
 
     <div id="root"></div>
@@ -122,7 +131,7 @@
         window.__grnSplashDone = function () {
           if (finished) return;
           finished = true;
-          var wait = Math.max(0, 4000 - (Date.now() - shownAt));
+          var wait = Math.max(0, 5200 - (Date.now() - shownAt));
           setTimeout(function () {
             var el = document.getElementById('grn-splash');
             if (!el) return;
@@ -130,7 +139,7 @@
             setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 650);
           }, wait);
         };
-        setTimeout(function () { window.__grnSplashDone(); }, 6000);
+        setTimeout(function () { window.__grnSplashDone(); }, 7000);
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
