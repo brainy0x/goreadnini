@@ -6,7 +6,7 @@ function Ring({ pct, size = 72, stroke = 6 }) {
   const r = (size - stroke * 2) / 2
   const circ = 2 * Math.PI * r
   const dash = (Math.min(pct, 100) / 100) * circ
-  const color = pct >= 100 ? 'var(--gold)' : pct >= 60 ? 'var(--crimson-light)' : 'var(--crimson)'
+  const color = pct >= 100 ? 'var(--gold)' : pct >= 60 ? '#8b95f5' : '#6b76ee'
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--bg-deep)" strokeWidth={stroke} />
@@ -61,14 +61,7 @@ export default function GoalsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Reading Goals</h2>
-          <p className="page-subtitle">Set your intentions, track your progress</p>
-        </div>
-      </div>
-
-      <div className="page-body" style={{ maxWidth: 680 }}>
+      <div className="np-pane">
         {/* Goal cards */}
         <div className="goals-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           {[
@@ -90,15 +83,15 @@ export default function GoalsPage() {
             }
           ].map((g, i) => (
             <div key={i} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)' }}>{g.label.toUpperCase()}</div>
+              <div style={{ fontFamily: 'inherit', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.15em', color: 'var(--gold-dim)' }}>{g.label.toUpperCase()}</div>
               <div style={{ position: 'relative', width: 72, height: 72 }}>
                 <Ring pct={g.pct} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontFamily: 'Cinzel, serif', fontSize: '1rem', color: 'var(--gold-light)', fontWeight: 600, lineHeight: 1 }}>{g.pct}%</span>
+                  <span style={{ fontFamily: 'inherit', fontSize: '1rem', color: 'var(--gold-light)', fontWeight: 600, lineHeight: 1 }}>{g.pct}%</span>
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: 'Cinzel, serif', fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                <div style={{ fontFamily: 'inherit', fontSize: '1.4rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                   {g.current} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/ {g.target}</span>
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.2rem' }}>{g.desc}</div>
@@ -108,8 +101,8 @@ export default function GoalsPage() {
         </div>
 
         {/* Edit goals */}
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>SET YOUR GOALS</div>
+        <details className="np-details">
+          <summary>Edit goals</summary>
           <div className="goal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Books to read in {year}</label>
@@ -125,29 +118,7 @@ export default function GoalsPage() {
               {saving ? 'Saving...' : 'Save Goals'}
             </button>
           </div>
-        </div>
-
-        {/* Currently reading progress */}
-        {books.filter(b => b.shelf === 'reading').length > 0 && (
-          <div style={{ marginTop: '1.5rem' }}>
-            <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>IN PROGRESS</div>
-            {books.filter(b => b.shelf === 'reading').map(b => (
-              <div key={b.id} className="card goal-book-row" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                {b.cover_url
-                  ? <img src={b.cover_url} alt={b.title} style={{ width: 40, height: 56, objectFit: 'cover', borderRadius: 3, flexShrink: 0 }} />
-                  : <div style={{ width: 40, height: 56, background: 'var(--bg-deep)', border: '1px solid var(--border)', borderRadius: 3, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📖</div>
-                }
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.82rem', color: 'var(--text-primary)', marginBottom: '0.3rem' }}>{b.title}</div>
-                  <div style={{ height: 4, background: 'var(--bg-deep)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${b.progress || 0}%`, background: 'linear-gradient(90deg, var(--crimson), var(--gold))', borderRadius: 2, transition: 'width 0.5s ease' }} />
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem', fontStyle: 'italic' }}>{b.progress || 0}% complete</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </details>
       </div>
     </div>
   )

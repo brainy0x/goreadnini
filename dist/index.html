@@ -3,17 +3,138 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#120e0a" />
+    <meta name="theme-color" content="#14153d" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="icon" type="image/svg+xml" href="/app-icon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>GoreadNini - Her Library</title>
-    <meta name="description" content="A personal reading sanctuary - her books, her pace, her space." />
-    <script type="module" crossorigin src="/assets/index-Dz353Oyd.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/dom-parser-DZbYr9gB.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-a2059ljM.css">
+    <meta name="description" content="A personal reading sanctuary." />
+    <style>
+      html, body { margin: 0; background: #14153d; }
+
+      /* ── Launch splash: shown instantly, removed by the app once it is ready ── */
+      #grn-splash {
+        position: fixed; inset: 0; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 2rem; text-align: center; overflow: hidden;
+        background: linear-gradient(135deg, #14153d 0%, #1f2260 50%, #101234 100%);
+        color: #f3f4ff; font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+        transition: opacity .55s ease, visibility .55s ease;
+      }
+      #grn-splash.sp-out { opacity: 0; visibility: hidden; }
+
+      .sp-glow {
+        position: absolute; width: 440px; height: 440px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(139,149,245,.34) 0%, transparent 65%);
+        animation: spGlow 3.2s ease-in-out infinite;
+      }
+      @keyframes spGlow { 0%,100% { transform: scale(.92); opacity: .7; } 50% { transform: scale(1.08); opacity: 1; } }
+
+      /* The book: a cover, two open pages, and three pages that turn */
+      .sp-book {
+        position: relative; width: 132px; height: 92px; margin-bottom: 38px; perspective: 800px;
+        opacity: 0; transform: scale(.82) translateY(10px);
+        animation: spBookIn .6s cubic-bezier(.2,.9,.3,1) .1s forwards;
+      }
+      @keyframes spBookIn { to { opacity: 1; transform: none; } }
+      .sp-cover {
+        position: absolute; inset: -7px -9px; border-radius: 12px;
+        background: linear-gradient(145deg, #4a50c8, #2c3090);
+        box-shadow: 0 18px 38px rgba(0,0,0,.5);
+      }
+      .sp-page { position: absolute; top: 0; width: 66px; height: 92px; background: #f7f3ea; }
+      .sp-left  { left: 0;  border-radius: 7px 0 0 7px; box-shadow: inset -10px 0 12px -10px rgba(0,0,0,.3); }
+      .sp-right { left: 66px; border-radius: 0 7px 7px 0; box-shadow: inset 10px 0 12px -10px rgba(0,0,0,.3); }
+      .sp-lines {
+        position: absolute; left: 10px; right: 10px; top: 14px; bottom: 14px;
+        background: repeating-linear-gradient(to bottom, rgba(60,64,150,.28) 0 2px, transparent 2px 9px);
+        border-radius: 2px;
+      }
+      .sp-flip {
+        position: absolute; left: 66px; top: 0; width: 66px; height: 92px;
+        background: #fbf8f0; border-radius: 0 7px 7px 0; transform-origin: left center;
+        box-shadow: inset 8px 0 10px -8px rgba(0,0,0,.25); backface-visibility: visible;
+        animation: spFlip .9s ease-in-out forwards;
+      }
+      .sp-flip.f1 { animation-delay: .75s; }
+      .sp-flip.f2 { animation-delay: 1.0s; }
+      .sp-flip.f3 { animation-delay: 1.25s; }
+      @keyframes spFlip { from { transform: rotateY(0deg); } to { transform: rotateY(-178deg); } }
+
+      .sp-hello { margin: 0; font-size: .95rem; letter-spacing: .02em; color: #aab2f7; opacity: 0; animation: spUp .7s ease 1.2s forwards; }
+      .sp-name {
+        margin: .15rem 0 0; font-size: clamp(2rem, 9vw, 2.9rem); font-weight: 700; letter-spacing: -.02em;
+        line-height: 1.15; max-width: 90vw; opacity: 0; animation: spUp .8s ease 1.4s forwards;
+      }
+      .sp-tag { margin: 1rem 0 0; font-size: .8rem; color: #8f97d9; opacity: 0; animation: spUp .8s ease 1.8s forwards; }
+      @keyframes spUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+      @media (prefers-reduced-motion: reduce) {
+        .sp-glow, .sp-flip { animation: none; }
+        .sp-flip { display: none; }
+        .sp-book, .sp-hello, .sp-name, .sp-tag { animation: spFade .5s ease forwards; transform: none; }
+        @keyframes spFade { to { opacity: 1; } }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-B4q8ItiD.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/dom-parser-C8zhF2Cf.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CmmFWJoi.css">
   <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
   <body>
+    <div id="grn-splash" aria-hidden="true">
+      <div class="sp-glow"></div>
+      <div class="sp-book">
+        <div class="sp-cover"></div>
+        <div class="sp-page sp-left"><div class="sp-lines"></div></div>
+        <div class="sp-page sp-right"><div class="sp-lines"></div></div>
+        <div class="sp-flip f1"></div>
+        <div class="sp-flip f2"></div>
+        <div class="sp-flip f3"></div>
+      </div>
+      <p class="sp-hello">Welcome back,</p>
+      <h1 class="sp-name" id="sp-name">Nini</h1>
+    </div>
+
     <div id="root"></div>
+
+    <script>
+      // Pick a name to greet by (a different one each launch). The list is edited inside the app
+      // and mirrored into localStorage so it is available here before any app code has loaded.
+      (function () {
+        var names = ['Nini', 'Semo', 'iyawo mii'];
+        try {
+          var saved = JSON.parse(localStorage.getItem('grn_greeting_names') || 'null');
+          if (Array.isArray(saved)) {
+            saved = saved.filter(function (n) { return typeof n === 'string' && n.trim(); });
+            if (saved.length) names = saved;
+          }
+        } catch (e) {}
+
+        var last = null;
+        try { last = localStorage.getItem('grn_last_greeting'); } catch (e) {}
+        var pool = names.filter(function (n) { return n !== last; });
+        if (!pool.length) pool = names;
+        var name = pool[Math.floor(Math.random() * pool.length)];
+        try { localStorage.setItem('grn_last_greeting', name); } catch (e) {}
+        document.getElementById('sp-name').textContent = name;
+
+        // The app calls this once it is ready. The splash always plays long enough to be seen,
+        // and a failsafe removes it even if the app never reports in.
+        var shownAt = Date.now();
+        var finished = false;
+        window.__grnSplashDone = function () {
+          if (finished) return;
+          finished = true;
+          var wait = Math.max(0, 2300 - (Date.now() - shownAt));
+          setTimeout(function () {
+            var el = document.getElementById('grn-splash');
+            if (!el) return;
+            el.classList.add('sp-out');
+            setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 650);
+          }, wait);
+        };
+        setTimeout(function () { window.__grnSplashDone(); }, 6000);
+      })();
+    </script>
   </body>
 </html>

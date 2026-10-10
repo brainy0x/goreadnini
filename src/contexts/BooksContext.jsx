@@ -40,6 +40,8 @@ export function BooksProvider({ children }) {
   const [quotes,     setQuotes]     = useState([])
   const [sessions,   setSessions]   = useState([])
   const [goals,      setGoals]      = useState([])
+  const [siteBookmarks, setSiteBookmarks] = useState([])
+  const [settings, setSettings] = useState([])
   const [loading,    setLoading]    = useState(true)
   const [syncing,    setSyncing]    = useState(false)
   const [syncStatus, setSyncStatus] = useState(firebaseReady ? 'synced' : 'local')
@@ -62,6 +64,8 @@ export function BooksProvider({ children }) {
       setQuotes(LS.get('quotes'))
       setSessions(LS.get('sessions'))
       setGoals(LS.get('goals'))
+      setSiteBookmarks(LS.get('site_bookmarks'))
+      setSettings(LS.get('settings'))
       setLoading(false)
       return
     }
@@ -99,6 +103,8 @@ export function BooksProvider({ children }) {
     subscribe('quotes',    setQuotes)
     subscribe('sessions',  setSessions)
     subscribe('goals',     setGoals)
+    subscribe('site_bookmarks', setSiteBookmarks)
+    subscribe('settings', setSettings)
 
     setLoading(false)
     setSyncStatus('synced')
@@ -163,7 +169,7 @@ export function BooksProvider({ children }) {
   }, [writeDoc])
 
   const updateBook = useCallback(async (id, updates) => {
-    const updated = { ...updates, updated_at: new Date().toISOString() }
+    const updated = { updated_at: new Date().toISOString(), ...updates }
     setBooks(prev => {
       const next = prev.map(b => b.id === id ? { ...b, ...updated } : b)
       LS.set('books', next)
@@ -224,6 +230,49 @@ export function BooksProvider({ children }) {
   }, [removeDoc])
 
   // ─────────────────────────────────────────────────────────────
+  // SITE BOOKMARKS (saved websites for finding books — synced like everything else)
+  // ─────────────────────────────────────────────────────────────
+  const addSiteBookmark = useCallback(async (data) => {
+    const item = { ...data, id: crypto.randomUUID(), created_at: new Date().toISOString() }
+    setSiteBookmarks(prev => { const next = [...prev, item]; LS.set('site_bookmarks', next); return next })
+    await writeDoc('site_bookmarks', item.id, item)
+    return item
+  }, [writeDoc])
+
+  const updateSiteBookmark = useCallback(async (id, updates) => {
+    setSiteBookmarks(prev => { const next = prev.map(b => b.id === id ? { ...b, ...updates } : b); LS.set('site_bookmarks', next); return next })
+    await writeDoc('site_bookmarks', id, updates)
+  }, [writeDoc])
+
+  const deleteSiteBookmark = useCallback(async (id) => {
+    setSiteBookmarks(prev => { const next = prev.filter(b => b.id !== id); LS.set('site_bookmarks', next); return next })
+    await removeDoc('site_bookmarks', id)
+  }, [removeDoc])
+
+  // ─────────────────────────────────────────────────────────────
+  // READER SETTINGS (one synced doc: appearance prefs + saved profiles)
+  // ─────────────────────────────────────────────────────────────
+  const saveReaderPrefs = useCallback(async (patch) => {
+    setSettings(prev => {
+      const rest = prev.filter(x => x.id !== 'reader')
+      const next = [...rest, { ...(prev.find(x => x.id === 'reader') || {}), ...patch, id: 'reader' }]
+      LS.set('settings', next)
+      return next
+    })
+    await writeDoc('settings', 'reader', patch)
+  }, [writeDoc])
+
+  const saveProfile = useCallback(async (patch) => {
+    setSettings(prev => {
+      const rest = prev.filter(x => x.id !== 'profile')
+      const next = [...rest, { ...(prev.find(x => x.id === 'profile') || {}), ...patch, id: 'profile' }]
+      LS.set('settings', next)
+      return next
+    })
+    await writeDoc('settings', 'profile', patch)
+  }, [writeDoc])
+
+  // ─────────────────────────────────────────────────────────────
   // SESSIONS
   // ─────────────────────────────────────────────────────────────
   const addSession = useCallback(async (data) => {
@@ -255,13 +304,16 @@ export function BooksProvider({ children }) {
 
   return (
     <BooksContext.Provider value={{
-      books, highlights, bookmarks, quotes, sessions, goals,
+      books, highlights, bookmarks, quotes, sessions, goals, siteBookmarks,
+      readerPrefs: settings.find(x => x.id === 'reader') || null, saveReaderPrefs,
+      profile: settings.find(x => x.id === 'profile') || null, saveProfile,
       loading, syncing, syncStatus,
       addBook, updateBook, deleteBook,
       addHighlight, deleteHighlight,
       addBookmark, deleteBookmark,
       addQuote, deleteQuote,
       addSession, saveGoal,
+      addSiteBookmark, updateSiteBookmark, deleteSiteBookmark,
     }}>
       {children}
     </BooksContext.Provider>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Menu, X } from 'lucide-react'
+import { Library, Search, Upload, Bookmark, BarChart2 } from 'lucide-react'
 import { ToastProvider } from './contexts/ToastContext'
-import { BooksProvider } from './contexts/BooksContext'
+import { BooksProvider, useBooks } from './contexts/BooksContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AccessGate from './components/AccessGate'
 import Sidebar from './components/Sidebar'
@@ -9,16 +9,21 @@ import EpubReader from './components/EpubReader'
 import ShelfPage from './pages/ShelfPage'
 import SearchPage from './pages/SearchPage'
 import UploadPage from './pages/UploadPage'
-import HighlightsPage from './pages/HighlightsPage'
-import QuotesPage from './pages/QuotesPage'
-import StatsPage from './pages/StatsPage'
-import GoalsPage from './pages/GoalsPage'
-import BadgesPage from './pages/BadgesPage'
-import WrappedPage from './pages/WrappedPage'
+import NotesPage from './pages/NotesPage'
+import ProgressPage from './pages/ProgressPage'
 
 const ACCESS_CODE_KEY = 'grn_access'
 
+const MOBILE_TABS = [
+  { id: 'shelf',    label: 'Library',  icon: Library },
+  { id: 'search',   label: 'Find',     icon: Search },
+  { id: 'upload',   label: 'Upload',   icon: Upload },
+  { id: 'notes',    label: 'Notes',    icon: Bookmark },
+  { id: 'progress', label: 'Progress', icon: BarChart2 },
+]
+
 function AppShell() {
+  const { loading, profile } = useBooks()
   const [page, setPage]               = useState('shelf')
   const [readingBook, setReadingBook] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -38,31 +43,39 @@ function AppShell() {
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
-    if (isMobile && sidebarOpen) {
+    if (sidebarOpen) {
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => { document.body.style.overflow = '' }
-  }, [isMobile, sidebarOpen])
+  }, [sidebarOpen])
 
   const navigate = (p) => {
     setPage(p)
     setSidebarOpen(false)
   }
 
+  // The launch splash (in index.html) fades away once the library is ready
+  useEffect(() => {
+    if (!loading) window.__grnSplashDone?.()
+  }, [loading])
+
+  // Keep this device's greeting names in step with the synced list, for the next launch's splash
+  useEffect(() => {
+    if (Array.isArray(profile?.names) && profile.names.length) {
+      try { localStorage.setItem('grn_greeting_names', JSON.stringify(profile.names)) } catch { /* storage full */ }
+    }
+  }, [profile])
+
   const renderPage = () => {
     switch (page) {
-      case 'shelf':      return <ShelfPage onRead={setReadingBook} />
-      case 'search':     return <SearchPage />
+      case 'shelf':      return <ShelfPage onRead={setReadingBook} onNavigate={navigate} />
+      case 'search':     return <SearchPage onRead={setReadingBook} onNavigate={navigate} />
       case 'upload':     return <UploadPage onRead={setReadingBook} />
-      case 'highlights': return <HighlightsPage />
-      case 'quotes':     return <QuotesPage />
-      case 'stats':      return <StatsPage />
-      case 'goals':      return <GoalsPage />
-      case 'badges':     return <BadgesPage />
-      case 'wrapped':    return <WrappedPage />
-      default:           return <ShelfPage onRead={setReadingBook} />
+      case 'notes':      return <NotesPage />
+      case 'progress':   return <ProgressPage />
+      default:           return <ShelfPage onRead={setReadingBook} onNavigate={navigate} />
     }
   }
 
@@ -79,10 +92,11 @@ function AppShell() {
         isMobile={isMobile}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onToggle={() => setSidebarOpen(o => !o)}
       />
 
       {/* Touch-blocking backdrop — sits ABOVE main content, below sidebar */}
-      {isMobile && sidebarOpen && (
+      {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
@@ -98,53 +112,24 @@ function AppShell() {
 
       <main
         className="main-content"
-        style={isMobile && sidebarOpen
+        style={sidebarOpen
           ? { pointerEvents: 'none', userSelect: 'none' }
           : undefined
         }
       >
-        {/* Mobile top bar */}
-        {isMobile && (
-          <div style={{
-            padding: '0.7rem 1rem',
-            borderBottom: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'var(--bg-panel)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 50,
-          }}>
-            <span style={{
-              fontFamily: 'Cinzel, serif',
-              fontSize: '1rem',
-              color: 'var(--gold-light)',
-              letterSpacing: '0.06em',
-            }}>
-              📚 GoreadNini
-            </span>
-            <button
-              onClick={() => setSidebarOpen(o => !o)}
-              style={{
-                background: 'none',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                cursor: 'pointer',
-                color: 'var(--text-secondary)',
-                padding: '0.35rem 0.45rem',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              aria-label="Toggle menu"
-            >
-              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          </div>
-        )}
-
         {renderPage()}
       </main>
+
+      {isMobile && (
+        <nav className="bottom-nav">
+          {MOBILE_TABS.map(({ id, label, icon: Icon }) => (
+            <button key={id} className={page === id ? 'active' : ''} onClick={() => navigate(id)}>
+              <span className="bn-icon"><Icon size={18} /></span>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
@@ -153,6 +138,11 @@ export default function App() {
   const [unlocked, setUnlocked] = useState(
     () => localStorage.getItem(ACCESS_CODE_KEY) === 'true'
   )
+
+  // Nothing to load before the login screen, so let the splash go
+  useEffect(() => {
+    if (!unlocked) window.__grnSplashDone?.()
+  }, [unlocked])
 
   if (!unlocked) {
     return (

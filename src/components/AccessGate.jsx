@@ -75,10 +75,9 @@ export default function AccessGate({ onUnlock }) {
         <span className="access-crest flicker">🏰</span>
 
         <h1 className="access-title">GoreadNini</h1>
-        <p className="access-subtitle">Her books, her pace, her realm.</p>
 
         <div style={{ margin: '0 0 1.5rem', padding: '1rem', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-          <p style={{ font: 'italic 0.9rem/1.6 "IM Fell English", serif', color: 'var(--text-muted)' }}>
+          <p style={{ font: 'italic 0.9rem/1.6 Inter, system-ui, sans-serif', color: 'var(--text-muted)' }}>
             "She is too fond of books, and it has turned her brain."<br/>
             <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>— Louisa May Alcott</span>
           </p>

@@ -1,24 +1,16 @@
 // src/components/Sidebar.jsx
-import { BookOpen, Library, Bookmark, Quote, BarChart2, Target, Award, Sparkles, Search, Upload, Moon, Wifi, WifiOff, Loader, Cloud } from 'lucide-react'
+import { PanelLeft, BookOpen, Library, Bookmark, Quote, BarChart2, Target, Award, Sparkles, Search, Upload, Moon, Wifi, WifiOff, Loader, Cloud } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 
 const NAV = [
   { section: 'Library' },
-  { id: 'shelf',      label: 'My Bookshelf',    icon: Library  },
-  { id: 'search',     label: 'Search & Import', icon: Search   },
-  { id: 'upload',     label: 'Upload Book',     icon: Upload   },
+  { id: 'shelf',    label: 'My Bookshelf', icon: Library   },
+  { id: 'search',   label: 'Find Books',   icon: Search    },
+  { id: 'upload',   label: 'Upload Book',  icon: Upload    },
 
-  { section: 'Reading' },
-  { id: 'highlights', label: 'Highlights',      icon: Bookmark },
-  { id: 'quotes',     label: 'Quotes Journal',  icon: Quote    },
-
-  { section: 'Progress' },
-  { id: 'stats',      label: 'Stats & Heatmap', icon: BarChart2 },
-  { id: 'goals',      label: 'Reading Goals',   icon: Target   },
-
-  { section: 'Delights' },
-  { id: 'badges',     label: 'Badges',          icon: Award    },
-  { id: 'wrapped',    label: 'Reading Wrapped', icon: Sparkles },
+  { section: 'You' },
+  { id: 'notes',    label: 'Notes',        icon: Bookmark  },
+  { id: 'progress', label: 'Progress',     icon: BarChart2 },
 ]
 
 function SyncBadge({ status }) {
@@ -45,15 +37,15 @@ function SyncBadge({ status }) {
   )
 }
 
-export default function Sidebar({ activePage, onNavigate, isMobile, isOpen, onClose }) {
+export default function Sidebar({ activePage, onNavigate, isMobile, isOpen, onClose, onToggle }) {
   const { syncStatus } = useBooks()
 
   return (
     <>
-      <aside className={`sidebar ${isMobile ? (isOpen ? 'open' : '') : ''}`}>
+      <aside className={`sidebar ${isOpen ? (isMobile ? 'open' : 'expanded') : ''}`}>
+        <button className="rail-toggle" onClick={onToggle} aria-label="Expand menu"><PanelLeft size={20} /></button>
         <div className="sidebar-logo">
-          <h1>📚 GoreadNini</h1>
-          <p>Her books, her pace, her realm.</p>
+          <h1>📚<span className="logo-text"> GoreadNini</span></h1>
         </div>
 
         <nav className="sidebar-nav">
@@ -65,18 +57,19 @@ export default function Sidebar({ activePage, onNavigate, isMobile, isOpen, onCl
             return (
               <div
                 key={item.id}
+                title={item.label}
                 className={`nav-item ${activePage === item.id ? 'active' : ''}`}
-                onClick={() => { onNavigate(item.id); if (isMobile) onClose() }}
+                onClick={() => { onNavigate(item.id); onClose() }}
               >
                 <Icon size={15} />
-                {item.label}
+                <span className="nav-label">{item.label}</span>
               </div>
             )
           })}
         </nav>
 
         <div className="sidebar-footer">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
+          <div className="footer-text-wrap" style={{ display: 'flex', flexDirection: 'column', gap: '.4rem' }}>
             <SyncBadge status={syncStatus} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', color: 'var(--text-muted)', fontSize: '.8rem', fontStyle: 'italic' }}>
               <Moon size={11} style={{ opacity: .5 }} />

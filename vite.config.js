@@ -1,10 +1,34 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { Readable } from 'node:stream'
+
+// Serves api/download.js during `npm run dev` (on Vercel it runs as an edge function)
+function devApi() {
+  return {
+    name: 'dev-api-download',
+    configureServer(server) {
+      server.middlewares.use('/api/download', async (req, res) => {
+        try {
+          const { default: handler } = await server.ssrLoadModule('/api/download.js')
+          const response = await handler(new Request('http://localhost/api/download' + req.url, { method: req.method }))
+          res.statusCode = response.status
+          response.headers.forEach((value, key) => res.setHeader(key, value))
+          if (response.body) Readable.fromWeb(response.body).pipe(res)
+          else res.end()
+        } catch (e) {
+          res.statusCode = 500
+          res.end(JSON.stringify({ error: String(e) }))
+        }
+      })
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
     react(),
+    devApi(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['app-icon.svg', 'app-icon-192.png', 'app-icon-512.png'],
@@ -17,8 +41,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#0c0906',
-        theme_color: '#120e0a',
+        background_color: '#14153d',
+        theme_color: '#14153d',
         categories: ['books', 'lifestyle'],
         icons: [
           { src: '/app-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

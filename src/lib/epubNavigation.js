@@ -74,10 +74,34 @@ export function scrollToFragmentAfterRender(viewer, fragment, delay = 220) {
   }, delay)
 }
 
-export async function displayEpubTarget({ book, rendition, viewer, href }) {
+// Links inside a chapter are written relative to that chapter's file (e.g. "../Text/ch3.xhtml#s2"),
+// but epub.js looks pages up by their full path in the book. Resolve the link the way a browser would.
+function resolveLinkAgainst(linkBase, href) {
+  try {
+    const url = new URL(href, `http://epub.local/${linkBase.replace(/^\/+/, '')}`)
+    return {
+      path: decodeURI(url.pathname.replace(/^\//, '')),
+      fragment: decodeURIComponent(url.hash.replace(/^#/, '')),
+    }
+  } catch {
+    return null
+  }
+}
+
+// `linkBase` is the full path of the chapter the clicked link is in. Omit it for entries that
+// already carry full paths (like the table of contents).
+export async function displayEpubTarget({ book, rendition, viewer, href, linkBase }) {
   if (!book || !rendition || !isInternalHref(href)) return false
 
   const { normalized, base, fragment } = splitHref(href)
+
+  if (linkBase) {
+    const resolved = resolveLinkAgainst(linkBase, normalized)
+    if (resolved?.path) {
+      const target = resolved.fragment ? `${resolved.path}#${resolved.fragment}` : resolved.path
+      if (await tryDisplay(rendition, target)) return true
+    }
+  }
 
   if (normalized.startsWith('#')) {
     return scrollToFragmentInViewer(viewer, fragment)

@@ -32,24 +32,19 @@ export default function QuotesPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Quotes Journal</h2>
-          <p className="page-subtitle">Words that found a home in you</p>
+      <div className="np-pane">
+        <div className="np-actions">
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(!showAdd)}>
+            <Plus size={13} /> Add Quote
+          </button>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(!showAdd)}>
-          <Plus size={13} /> Add Quote
-        </button>
-      </div>
-
-      <div className="page-body">
         {/* Add form */}
         {showAdd && (
           <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>NEW QUOTE</div>
+            <div style={{ fontFamily: 'inherit', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '1rem' }}>NEW QUOTE</div>
             <div className="form-group">
               <label className="form-label">Quote *</label>
-              <textarea className="input" value={form.text} onChange={e => setForm(p => ({ ...p, text: e.target.value }))} rows={4} placeholder="Enter the passage or quote..." style={{ fontFamily: '"IM Fell English", serif', fontStyle: 'italic', fontSize: '1.05rem', lineHeight: '1.7' }} />
+              <textarea className="input" value={form.text} onChange={e => setForm(p => ({ ...p, text: e.target.value }))} rows={4} placeholder="Enter the passage or quote..." style={{ fontFamily: 'Inter, system-ui, sans-serif', fontStyle: 'italic', fontSize: '1.05rem', lineHeight: '1.7' }} />
             </div>
             <div className="quote-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
@@ -88,14 +83,14 @@ export default function QuotesPage() {
         {filtered.length > 0 ? (
           filtered.map(q => (
             <div key={q.id} className="quote-card">
-              <div style={{ fontSize: '1.5rem', color: 'var(--gold-dim)', opacity: 0.4, lineHeight: 1, marginBottom: '0.5rem', fontFamily: 'Georgia, serif' }}>"</div>
+              <div style={{ fontSize: '1.5rem', color: 'var(--gold-dim)', opacity: 0.4, lineHeight: 1, marginBottom: '0.5rem', fontFamily: 'inherit' }}>"</div>
               <div className="quote-text">{q.text}</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
                 <div className="quote-source">
                   {q.book_title && `— ${q.book_title}`}
                   {q.author && `, ${q.author}`}
                 </div>
-                <button className="btn-icon" onClick={() => deleteQuote(q.id)} style={{ color: '#e87090', borderColor: 'rgba(139,26,46,0.3)' }}>
+                <button className="btn-icon" onClick={() => deleteQuote(q.id)} style={{ color: '#ff9aa8', borderColor: 'rgba(255,154,168,0.35)' }}>
                   <Trash2 size={12} />
                 </button>
               </div>

@@ -41,17 +41,11 @@ export default function BadgesPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Badges & Milestones</h2>
-          <p className="page-subtitle">{earned.length} of {BADGES.length} earned</p>
-        </div>
-      </div>
-
-      <div className="page-body">
+      <div className="np-pane">
+        <p className="np-note">{earned.length} of {BADGES.length} earned</p>
         {earned.length > 0 && (
           <>
-            <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.2em', color: 'var(--gold)', marginBottom: '1rem' }}>✦ EARNED</div>
+            <div style={{ fontFamily: 'inherit', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.2em', color: 'var(--gold)', marginBottom: '1rem' }}>✦ EARNED</div>
             <div className="badge-grid" style={{ marginBottom: '2rem' }}>
               {earned.map(b => (
                 <div key={b.id} className="badge-item earned">
@@ -66,7 +60,7 @@ export default function BadgesPage() {
 
         {locked.length > 0 && (
           <>
-            <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.65rem', letterSpacing: '0.2em', color: 'var(--text-muted)', marginBottom: '1rem' }}>LOCKED</div>
+            <div style={{ fontFamily: 'inherit', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.2em', color: 'var(--text-muted)', marginBottom: '1rem' }}>LOCKED</div>
             <div className="badge-grid">
               {locked.map(b => (
                 <div key={b.id} className="badge-item locked">

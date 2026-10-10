@@ -10,10 +10,9 @@ const COLORS = {
   lavender: '#8888dd',
 }
 
-export default function HighlightsPage() {
+export default function HighlightsPage({ view = 'highlights' }) {
   const { highlights, bookmarks, books, deleteHighlight, deleteBookmark } = useBooks()
   const toast = useToast()
-  const [tab, setTab] = useState('highlights')
   const [query, setQuery] = useState('')
   const [filterBook, setFilterBook] = useState('all')
 
@@ -41,26 +40,10 @@ export default function HighlightsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h2 className="page-title">Highlights & Bookmarks</h2>
-          <p className="page-subtitle">Passages that spoke to your soul</p>
-        </div>
-      </div>
-
-      <div className="page-body">
-        <div className="tabs">
-          <div className={`tab ${tab === 'highlights' ? 'active' : ''}`} onClick={() => setTab('highlights')}>
-            Highlights ({highlights.length})
-          </div>
-          <div className={`tab ${tab === 'bookmarks' ? 'active' : ''}`} onClick={() => setTab('bookmarks')}>
-            Bookmarks ({bookmarks.length})
-          </div>
-        </div>
-
+      <div className="np-pane">
         {/* Filters */}
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          {tab === 'highlights' && (
+          {view === 'highlights' && (
             <div className="search-wrap" style={{ flex: 1, minWidth: 200 }}>
               <Search />
               <input className="input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search highlights..." />
@@ -74,7 +57,7 @@ export default function HighlightsPage() {
           )}
         </div>
 
-        {tab === 'highlights' ? (
+        {view === 'highlights' ? (
           filteredHighlights.length > 0 ? (
             filteredHighlights.map(h => {
               const book = bookMap[h.book_id]
@@ -91,7 +74,7 @@ export default function HighlightsPage() {
                     <button
                       className="btn-icon"
                       onClick={() => handleDeleteHighlight(h.id)}
-                      style={{ color: '#e87090', borderColor: 'rgba(139,26,46,0.3)' }}
+                      style={{ color: '#ff9aa8', borderColor: 'rgba(255,154,168,0.35)' }}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -114,14 +97,14 @@ export default function HighlightsPage() {
                 <div key={bm.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', border: '1px solid var(--border)', borderRadius: 6, marginBottom: '0.5rem', background: 'var(--bg-card)' }}>
                   <div style={{ fontSize: '1.2rem' }}>🔖</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <div style={{ fontFamily: 'inherit', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
                       {bm.label || 'Bookmark'}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.2rem' }}>
                       {book?.title || 'Unknown book'} · {bm.page_info || ''}
                     </div>
                   </div>
-                  <button className="btn-icon" onClick={() => handleDeleteBookmark(bm.id)} style={{ color: '#e87090', borderColor: 'rgba(139,26,46,0.3)' }}>
+                  <button className="btn-icon" onClick={() => handleDeleteBookmark(bm.id)} style={{ color: '#ff9aa8', borderColor: 'rgba(255,154,168,0.35)' }}>
                     <Trash2 size={12} />
                   </button>
                 </div>

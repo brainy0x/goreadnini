@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react'
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { saveFile } from '../lib/fileStorage'
+import { enrichBook } from '../lib/bookEnrich'
 import { isConfigured as supabaseConfigured } from '../lib/supabase'
 
 export default function UploadPage({ onRead }) {
@@ -53,6 +54,9 @@ export default function UploadPage({ onRead }) {
       const updatedBook = { ...book, file_path: filePath, has_file: true }
       toast(`"${bookData.title}" added ✦`, 'success')
       setForm({ title: '', author: '', shelf: 'reading' })
+
+      // Fill in summary/cover in the background — never blocks the upload or reading
+      enrichBook(updatedBook, updateBook, { file: isEpub ? file : undefined })
 
       if (isEpub) onRead(updatedBook)
 
@@ -110,11 +114,11 @@ export default function UploadPage({ onRead }) {
           onClick={() => !uploading && fileRef.current?.click()}
           style={{
             border: `2px dashed ${dragging ? 'var(--gold)' : 'var(--border)'}`,
-            borderRadius: 8,
+            borderRadius: 22,
             padding: '3rem 2rem',
             textAlign: 'center',
             cursor: uploading ? 'default' : 'pointer',
-            background: dragging ? 'rgba(212,168,67,0.05)' : 'transparent',
+            background: dragging ? 'rgba(139,149,245,0.05)' : 'transparent',
             transition: 'all 0.2s',
           }}
         >
@@ -123,17 +127,17 @@ export default function UploadPage({ onRead }) {
           {uploading ? (
             <div>
               <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📚</div>
-              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '0.9rem', color: 'var(--gold)', letterSpacing: '0.06em', marginBottom: '1rem' }}>
+              <div style={{ fontFamily: 'inherit', fontSize: '0.9rem', color: 'var(--gold)', letterSpacing: '0.06em', marginBottom: '1rem' }}>
                 Storing your book...
               </div>
               <div style={{ height: 4, background: 'var(--bg-card)', borderRadius: 2, overflow: 'hidden', maxWidth: 200, margin: '0 auto' }}>
-                <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--crimson), var(--gold))', borderRadius: 2, transition: 'width 0.3s' }} />
+                <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #6b76ee, #b4bbfa)', borderRadius: 2, transition: 'width 0.3s' }} />
               </div>
             </div>
           ) : (
             <div>
               <Upload size={38} style={{ color: 'var(--gold-dim)', opacity: 0.5, margin: '0 auto 1rem', display: 'block' }} />
-              <div style={{ fontFamily: 'Cinzel, serif', fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+              <div style={{ fontFamily: 'inherit', fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
                 Tap to choose a file
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -144,7 +148,7 @@ export default function UploadPage({ onRead }) {
         </div>
 
         {/* Info box */}
-        <div style={{ marginTop: '1.25rem', padding: '1rem 1.25rem', border: '1px solid var(--border)', borderRadius: 6, lineHeight: 1.7 }}>
+        <div style={{ marginTop: '1.25rem', padding: '1rem 1.25rem', border: '1px solid var(--border)', borderRadius: 16, lineHeight: 1.7 }}>
           <div className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>How file storage works</div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
             📱 Files are uploaded to <strong>Supabase Storage</strong> — secure cloud storage with no size limit.
