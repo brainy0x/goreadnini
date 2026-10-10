@@ -4,7 +4,9 @@ import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { getFile } from '../lib/fileStorage'
 import { displayEpubTarget, flattenToc, isInternalHref } from '../lib/epubNavigation'
-import { displayBook } from '../lib/bookDisplay'
+import { displayBook, categoryOf } from '../lib/bookDisplay'
+import { usePomodoro } from '../contexts/PomodoroContext'
+import PomodoroChip from './PomodoroChip'
 import { DEFAULT_PREFS, pickAppearance, resolvePrefs, layoutSignature, applyReaderStyle, mixColors } from '../lib/readerPrefs'
 import { ensurePageFonts } from '../lib/readerFonts'
 import DefaultViewManager from 'epubjs/src/managers/default/index'
@@ -45,6 +47,8 @@ export default function EpubReader({ book, onClose }) {
 
   const liveBook = books.find(b => b.id === book.id) || book
   const { title: bookTitle, author: bookAuthor } = displayBook(liveBook)
+  const academic = categoryOf(liveBook) === 'academic'
+  const pomo = usePomodoro()
   const myBookmarks = useMemo(() => bookmarks.filter(b => b.book_id === book.id), [bookmarks, book.id])
   const myHighlights = useMemo(() => highlights.filter(h => h.book_id === book.id), [highlights, book.id])
   const profiles = readerPrefs?.profiles || []
@@ -167,6 +171,18 @@ export default function EpubReader({ book, onClose }) {
     clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(flushProgress, 2500)
   }, [book.id, flushProgress])
+
+
+  // Reaching the end marks the book Finished (once per opening)
+  const finishedRef = useRef(false)
+  const maybeFinish = useCallback(() => {
+    if (finishedRef.current) return
+    finishedRef.current = true
+    const current = latestBookRef.current
+    if (current.shelf === 'finished') return
+    fnsRef.current.updateBook(book.id, { shelf: 'finished', date_finished: new Date().toISOString().split('T')[0], progress: 100 })
+    fnsRef.current.toast(`Finished “${displayBook(current).title}” ✦`, 'success')
+  }, [book.id])
 
   // ── reading-time tracking for Stats ───────────────────────────
   useEffect(() => {
@@ -587,6 +603,7 @@ export default function EpubReader({ book, onClose }) {
           // How far through the book?
           const pct = progressFromLocation(weightsRef.current, start)
           if (pct !== null) { progressRef.current = pct; setProgress(pct) }
+          if (pct === 100) maybeFinish()
 
           queueSave(start.cfi, pct === null ? undefined : pct)
         })
@@ -706,7 +723,7 @@ export default function EpubReader({ book, onClose }) {
       )}
 
       <div className={`rd-mini ${uiVisible ? 'hide' : ''}`}>
-        {chapterTitle ? `${chapterTitle} · ` : ''}{progress}%
+        {academic && pomo.active ? `${pomo.mini} · ` : ''}{chapterTitle ? `${chapterTitle} · ` : ''}{progress}%
       </div>
 
       <header className={`rd-top ${uiVisible ? 'show' : ''}`}>
@@ -715,6 +732,7 @@ export default function EpubReader({ book, onClose }) {
           <strong>{bookTitle}</strong>
           {chapterTitle && <span>{chapterTitle}</span>}
         </div>
+        {academic && <PomodoroChip />}
         <button className={`rd-icon ${hereBookmarks.length ? 'active' : ''}`} onClick={toggleBookmark} aria-label="Bookmark this page">
           <Bookmark size={19} fill={hereBookmarks.length ? 'currentColor' : 'none'} />
         </button>

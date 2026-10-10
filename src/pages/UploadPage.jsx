@@ -13,7 +13,8 @@ export default function UploadPage({ onRead }) {
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [form, setForm] = useState({ title: '', author: '', shelf: 'reading' })
+  const [form, setForm] = useState({ title: '', author: '', shelf: 'reading', category: 'novel' })
+  const [categoryTouched, setCategoryTouched] = useState(false)
 
   const handleFile = async (file) => {
     if (!file) return
@@ -35,6 +36,7 @@ export default function UploadPage({ onRead }) {
         title:     form.title.trim() || autoTitle,
         author:    form.author.trim(),
         shelf:     form.shelf,
+        category:  categoryTouched ? form.category : (isPdf ? 'academic' : 'novel'),
         file_name: file.name,
         file_type: isEpub ? 'epub' : 'pdf',
         has_file:  false,
@@ -53,10 +55,11 @@ export default function UploadPage({ onRead }) {
 
       const updatedBook = { ...book, file_path: filePath, has_file: true }
       toast(`"${bookData.title}" added ✦`, 'success')
-      setForm({ title: '', author: '', shelf: 'reading' })
+      setForm({ title: '', author: '', shelf: 'reading', category: 'novel' })
+      setCategoryTouched(false)
 
       // Fill in summary/cover in the background — never blocks the upload or reading
-      enrichBook(updatedBook, updateBook, { file: isEpub ? file : undefined })
+      enrichBook(updatedBook, updateBook, { file })
 
       if (isEpub) onRead(updatedBook)
 
@@ -103,6 +106,24 @@ export default function UploadPage({ onRead }) {
                 <option value="paused">Paused</option>
               </select>
             </div>
+            <div className="form-group" style={{ gridColumn: '1/-1', margin: 0 }}>
+              <label className="form-label">Category</label>
+              <div className="lib-seg" style={{ margin: 0 }}>
+                {[{ id: 'novel', label: 'Novel' }, { id: 'academic', label: 'Academic' }].map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={(categoryTouched ? form.category : 'auto') === c.id ? 'active' : ''}
+                    onClick={() => { setCategoryTouched(true); setForm(p => ({ ...p, category: c.id })) }}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: '.4rem' }}>
+                {categoryTouched ? 'Your choice is used for this upload.' : 'PDFs go to Academic and EPUBs to Novels unless you choose.'}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -118,7 +139,7 @@ export default function UploadPage({ onRead }) {
             padding: '3rem 2rem',
             textAlign: 'center',
             cursor: uploading ? 'default' : 'pointer',
-            background: dragging ? 'rgba(139,149,245,0.05)' : 'transparent',
+            background: dragging ? 'rgba(var(--accent-rgb),0.05)' : 'transparent',
             transition: 'all 0.2s',
           }}
         >
@@ -131,7 +152,7 @@ export default function UploadPage({ onRead }) {
                 Storing your book...
               </div>
               <div style={{ height: 4, background: 'var(--bg-card)', borderRadius: 2, overflow: 'hidden', maxWidth: 200, margin: '0 auto' }}>
-                <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #6b76ee, #b4bbfa)', borderRadius: 2, transition: 'width 0.3s' }} />
+                <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, var(--accent-strong), var(--accent-light))', borderRadius: 2, transition: 'width 0.3s' }} />
               </div>
             </div>
           ) : (

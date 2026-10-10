@@ -4,6 +4,9 @@ import './index.css'
 import '@fontsource/caveat/500.css'
 import './redesign.css'
 import App from './App.jsx'
+import { applyStoredAppTheme } from './lib/appThemes'
+
+applyStoredAppTheme()
 createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>)
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

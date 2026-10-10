@@ -3,7 +3,7 @@ import { ChevronLeft, BookOpen, Trash2, Edit2, Star, Loader } from 'lucide-react
 import { useBooks } from '../contexts/BooksContext'
 import { useToast } from '../contexts/ToastContext'
 import { deleteFile } from '../lib/fileStorage'
-import { displayBook } from '../lib/bookDisplay'
+import { displayBook, CATEGORIES, categoryOf, categoryLabel } from '../lib/bookDisplay'
 import { languageName } from '../lib/bookLookup'
 import { enrichBook, lazyFileLoader } from '../lib/bookEnrich'
 import { shrinkCoverBlob } from '../lib/epubCover'
@@ -30,6 +30,7 @@ export default function BookDetailModal({ book: initial, onClose, onRead }) {
     title,
     author,
     shelf:       book.shelf || 'reading',
+    category:    categoryOf(book),
     progress:    book.progress || 0,
     pages_total: book.pages_total || 0,
     pages_read:  book.pages_read || 0,
@@ -135,7 +136,10 @@ export default function BookDetailModal({ book: initial, onClose, onRead }) {
             <BookCover book={book} className="bd-cover" />
             <h2 className="bd-title">{title}</h2>
             <div className="bd-author">{author || 'Unknown author'}</div>
-            <span className={`shelf-badge ${book.shelf}`}>{book.shelf}</span>
+            <div className="bd-badges">
+              <span className={`shelf-badge ${book.shelf}`}>{book.shelf}</span>
+              <span className="bd-cat">{categoryLabel(categoryOf(book))}</span>
+            </div>
           </div>
 
           <div className="bd-stats">
@@ -193,6 +197,10 @@ export default function BookDetailModal({ book: initial, onClose, onRead }) {
                 <div className="form-group"><label className="form-label">Shelf</label>
                   <select className="select" value={form.shelf} onChange={e => f('shelf', e.target.value)}>
                     {SHELVES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                  </select></div>
+                <div className="form-group"><label className="form-label">Category</label>
+                  <select className="select" value={form.category} onChange={e => f('category', e.target.value)}>
+                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.single}</option>)}
                   </select></div>
                 <div className="form-group"><label className="form-label">Progress %</label>
                   <input className="input" type="number" min="0" max="100" value={form.progress} onChange={e => f('progress', Number(e.target.value))} /></div>

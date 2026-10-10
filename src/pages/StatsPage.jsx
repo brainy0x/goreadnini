@@ -43,8 +43,8 @@ function Heatmap({ sessions }) {
               borderRadius: 2,
               background: c.level === 0 ? 'var(--bg-card)' :
                 c.level === 1 ? 'rgba(255,154,168,0.35)' :
-                c.level === 2 ? 'rgba(139,149,245,0.6)' :
-                c.level === 3 ? '#6b76ee' : 'var(--gold-dim)',
+                c.level === 2 ? 'rgba(var(--accent-rgb),0.6)' :
+                c.level === 3 ? 'var(--accent-strong)' : 'var(--gold-dim)',
             }}
           />
         ))}
@@ -52,7 +52,7 @@ function Heatmap({ sessions }) {
       <div className="heatmap-legend" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
         <span>Less</span>
         {[0,1,2,3,4].map(l => (
-          <div key={l} style={{ width: 10, height: 10, borderRadius: 2, background: l === 0 ? 'var(--bg-card)' : l === 1 ? 'rgba(255,154,168,0.35)' : l === 2 ? 'rgba(139,149,245,0.6)' : l === 3 ? '#6b76ee' : 'var(--gold-dim)' }} />
+          <div key={l} style={{ width: 10, height: 10, borderRadius: 2, background: l === 0 ? 'var(--bg-card)' : l === 1 ? 'rgba(255,154,168,0.35)' : l === 2 ? 'rgba(var(--accent-rgb),0.6)' : l === 3 ? 'var(--accent-strong)' : 'var(--gold-dim)' }} />
         ))}
         <span>More</span>
       </div>
@@ -61,7 +61,7 @@ function Heatmap({ sessions }) {
 }
 
 export default function StatsPage() {
-  const { books, sessions } = useBooks()
+  const { books, sessions, profile } = useBooks()
   const [logMins, setLogMins] = useState(30)
   const [logBookId, setLogBookId] = useState('')
   const { addSession } = useBooks()
@@ -97,6 +97,7 @@ export default function StatsPage() {
             { value: reading, label: 'Currently Reading' },
             { value: totalHours, label: 'Hours Reading' },
             { value: `${streak}d`, label: 'Current Streak' },
+            { value: profile?.pomodoros?.[today] || 0, label: 'Focus Sessions Today' },
           ].map((s, i) => (
             <div key={i} className="stat-card">
               <div className="stat-value">{s.value}</div>

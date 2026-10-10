@@ -6,7 +6,7 @@ function Ring({ pct, size = 72, stroke = 6 }) {
   const r = (size - stroke * 2) / 2
   const circ = 2 * Math.PI * r
   const dash = (Math.min(pct, 100) / 100) * circ
-  const color = pct >= 100 ? 'var(--gold)' : pct >= 60 ? '#8b95f5' : '#6b76ee'
+  const color = pct >= 100 ? 'var(--gold)' : pct >= 60 ? 'var(--accent)' : 'var(--accent-strong)'
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--bg-deep)" strokeWidth={stroke} />

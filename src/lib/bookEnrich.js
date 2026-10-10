@@ -6,6 +6,7 @@ import { displayBook } from './bookDisplay'
 import { getFile } from './fileStorage'
 import { extractEpubCover, shrinkCoverBlob } from './epubCover'
 import { localizeCover, isRemoteCover } from './coverCache'
+import { isPdfBlob, readPdfInfo } from './pdfInfo'
 
 const FIELDS = ['description', 'cover_url', 'pages_total', 'language', 'genre', 'public_rating']
 const inFlight = new Set()
@@ -17,6 +18,7 @@ const stripHtml = (s = '') => s.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ')
 
 // Just the cover, straight from the epub's zip (fast, no epub.js)
 async function readCoverOnly(file) {
+  if (await isPdfBlob(file)) return (await readPdfInfo(file)).cover_url || ''
   const blob = await extractEpubCover(await file.arrayBuffer())
   return blob ? shrinkCoverBlob(blob) : ''
 }
@@ -59,7 +61,11 @@ async function readEpub(file) {
 
 async function safeEpub(file) {
   if (!file) return {}
-  try { return await withTimeout(readEpub(file), 30000) } catch { return {} }
+  try {
+    // a PDF gives a cover (page 1), a page count and sometimes an author; an epub gives much more
+    if (await isPdfBlob(file)) return await withTimeout(readPdfInfo(file), 40000)
+    return await withTimeout(readEpub(file), 30000)
+  } catch { return {} }
 }
 
 async function safeOnline(title, author) {
@@ -149,6 +155,6 @@ export async function enrichBook(book, updateBook, opts = {}) {
 }
 
 export const lazyFileLoader = (book) =>
-  book.file_path && book.file_type === 'epub'
+  book.file_path
     ? async () => (await getFile(book.file_path)).file
     : undefined

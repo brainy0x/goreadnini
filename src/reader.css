@@ -267,3 +267,77 @@
 /* ── PDF mode ── */
 .rd-pdf { position: absolute; inset: 0; padding-top: calc(env(safe-area-inset-top) + 56px); display: flex; background: var(--rd-bg); }
 .rd-pdf .pdf-frame { flex: 1; width: 100%; height: 100%; border: 0; }
+
+/* ── PDF reader ── */
+.pdf-scroll { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+.pdf-pages { display: flex; flex-direction: column; align-items: center; width: max-content; min-width: 100%; padding-bottom: 60px; }
+.pdf-page { position: relative; flex-shrink: 0; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 14px rgba(0, 0, 0, .35); }
+.pdf-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* the invisible, selectable text laid over each page (the part of PDF.js's own stylesheet we need) */
+.pdf-page .textLayer {
+  position: absolute; inset: 0; z-index: 2; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
+  letter-spacing: normal; word-spacing: normal; transform-origin: 0 0; forced-color-adjust: none;
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.pdf-page .textLayer :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0 0; -webkit-user-select: text; user-select: text; }
+.pdf-page .textLayer > :not(.markedContent), .pdf-page .textLayer .markedContent span:not(.markedContent) {
+  z-index: 1; --font-height: 0; font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1; --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.pdf-page .textLayer .markedContent { display: contents; }
+.pdf-page .textLayer ::selection { background: rgba(110, 130, 255, .35); color: transparent; }
+.pdf-page .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; -webkit-user-select: none; user-select: none; }
+.pdf-page .textLayer.selecting .endOfContent { top: 0; }
+
+.pdf-swatches { grid-template-columns: repeat(4, 1fr); }
+.pdf-search-box { display: flex; gap: .5rem; padding: .6rem 1rem .3rem; }
+.pdf-search-box input { flex: 1; min-width: 0; padding: .65rem .85rem; border-radius: 12px; border: 1.5px solid var(--rd-line); background: transparent; color: var(--rd-text); font-size: .9rem; outline: none; }
+.pdf-search-box input:focus { border-color: var(--rd-accent); }
+.pdf-search-box button { width: 42px; border: 0; border-radius: 12px; background: var(--rd-accent); color: var(--rd-bg); display: grid; place-items: center; cursor: pointer; }
+.pdf-search-status { padding: .2rem 1.1rem .6rem; font-size: .78rem; color: var(--rd-muted); }
+.pdf-hit mark { background: rgba(255, 201, 77, .5); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* ── Study timer (Pomodoro) ── */
+.pomo-chip { display: inline-flex; align-items: center; gap: .3rem; flex-shrink: 0; padding: .35rem .65rem; border: 1px solid var(--rd-line, rgba(255,255,255,.2)); border-radius: 999px; background: transparent; color: var(--rd-text, #f3f4ff); font: 600 .78rem 'Inter', system-ui, sans-serif; font-variant-numeric: tabular-nums; cursor: pointer; }
+.pomo-chip.running { border-color: var(--rd-accent, #8b95f5); color: var(--rd-accent, #8b95f5); }
+.pomo-chip.break { border-color: #4fd1a5; color: #4fd1a5; }
+
+.pomo-scrim { position: fixed; inset: 0; z-index: 70; }
+.pomo-panel {
+  position: fixed; z-index: 71; top: calc(env(safe-area-inset-top) + 64px); right: 10px; width: min(92vw, 320px);
+  padding: 1.1rem 1.1rem .9rem; border-radius: 20px; text-align: center;
+  background: var(--rd-ui, #23266a); color: var(--rd-text, #f3f4ff); border: 1px solid var(--rd-line, rgba(255,255,255,.18));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .45); font-family: 'Inter', system-ui, sans-serif; animation: slideUp .2s ease;
+  --pomo-accent: var(--rd-accent, #8b95f5);
+}
+.pomo-panel.break { --pomo-accent: #4fd1a5; }
+.pomo-phase { font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--pomo-accent); }
+.pomo-clock { font-size: 3rem; font-weight: 700; line-height: 1.1; margin: .15rem 0 .6rem; font-variant-numeric: tabular-nums; }
+.pomo-bar { height: 5px; border-radius: 3px; background: var(--rd-line, rgba(255,255,255,.15)); overflow: hidden; }
+.pomo-bar div { height: 100%; background: var(--pomo-accent); transition: width .3s linear; }
+.pomo-dots { display: flex; justify-content: center; gap: .4rem; margin: .7rem 0; }
+.pomo-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--rd-line, rgba(255,255,255,.2)); }
+.pomo-dots i.on { background: var(--pomo-accent); }
+.pomo-actions { display: flex; gap: .5rem; justify-content: center; margin-bottom: .9rem; }
+.pomo-main { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; flex: 1; padding: .65rem 1rem; border: 0; border-radius: 12px; background: var(--pomo-accent); color: #10123a; font: 700 .9rem 'Inter', system-ui, sans-serif; cursor: pointer; }
+.pomo-ghost { width: 44px; border: 1px solid var(--rd-line, rgba(255,255,255,.2)); border-radius: 12px; background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; }
+.pomo-settings { display: flex; flex-direction: column; gap: .35rem; padding-top: .7rem; border-top: 1px solid var(--rd-line, rgba(255,255,255,.15)); }
+.pomo-step { display: flex; align-items: center; justify-content: space-between; font-size: .82rem; }
+.pomo-step div { display: inline-flex; align-items: center; gap: .55rem; }
+.pomo-step strong { min-width: 58px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pomo-step button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--rd-line, rgba(255,255,255,.2)); background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; }
+.pomo-today { margin-top: .7rem; font-size: .75rem; color: var(--rd-muted, #98a0dc); }
+
+/* floating pill in the library while a timer is going */
+.pomo-float { position: fixed; z-index: 85; left: 50%; transform: translateX(-50%); bottom: 24px; display: inline-flex; align-items: center; gap: .5rem; padding: .55rem 1rem; border-radius: 999px; border: 1px solid rgba(139,149,245,.5); background: #23266a; color: #f3f4ff; font: 600 .85rem 'Inter', system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,.4); cursor: pointer; }
+.pomo-float strong { font-variant-numeric: tabular-nums; color: #b4bbfa; }
+.pomo-float.break { border-color: rgba(79,209,165,.6); }
+.pomo-float.break strong { color: #4fd1a5; }
+@media (max-width: 767px) { .pomo-float { bottom: calc(88px + env(safe-area-inset-bottom)); } }
+@media (min-width: 768px) and (max-width: 1024px) { .pomo-float { left: calc(50% + 38px); } }
+@media (min-width: 1025px) { .pomo-float { left: calc(50% + 130px); } }

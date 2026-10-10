@@ -32,7 +32,7 @@ export default function WrappedPage() {
         <div className="wrapped-layout" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '2.5rem', alignItems: 'start', flexWrap: 'wrap' }}>
           {/* The wrapped card */}
           <div ref={cardRef} className="wrapped-card" style={{
-            background: 'linear-gradient(160deg, #2a2c7c 0%, #1a1c4e 55%, #121339 100%)',
+            background: 'linear-gradient(160deg, var(--surf-a) 0%, var(--surf-b) 55%, var(--surf-c) 100%)',
             border: '1px solid var(--border-bright)',
             borderRadius: 16,
             padding: '2.5rem 2rem',
@@ -43,8 +43,8 @@ export default function WrappedPage() {
             flexShrink: 0,
           }}>
             {/* Decorative glows */}
-            <div style={{ position: 'absolute', top: -60, left: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(139,149,245,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: -60, right: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(139,149,245,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: -60, left: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: -60, right: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(var(--accent-rgb),0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div style={{ fontFamily: 'inherit', fontSize: '0.6rem', letterSpacing: '0.35em', color: 'var(--gold-dim)', marginBottom: '0.4rem' }}>GOREADNINI</div>
@@ -65,7 +65,7 @@ export default function WrappedPage() {
                   { val: highlights.length, label: 'Highlights' },
                   { val: quotes.length, label: 'Quotes Saved' },
                 ].map((s, i) => (
-                  <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(139,149,245,0.15)', borderRadius: 8, padding: '0.75rem 0.5rem' }}>
+                  <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(var(--accent-rgb),0.15)', borderRadius: 8, padding: '0.75rem 0.5rem' }}>
                     <div style={{ fontFamily: 'inherit', fontSize: '1.4rem', color: 'var(--gold-light)', fontWeight: 600 }}>{s.val}</div>
                     <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'inherit', letterSpacing: '0.1em', marginTop: '0.15rem' }}>{s.label.toUpperCase()}</div>
                   </div>
@@ -74,15 +74,15 @@ export default function WrappedPage() {
 
               {/* Top genre */}
               {topGenre && (
-                <div style={{ marginBottom: '1.25rem', padding: '0.75rem', background: 'rgba(139,149,245,0.2)', border: '1px solid rgba(139,149,245,0.3)', borderRadius: 8 }}>
-                  <div style={{ fontSize: '0.62rem', fontFamily: 'inherit', letterSpacing: '0.15em', color: '#8b95f5', marginBottom: '0.25rem' }}>TOP GENRE</div>
+                <div style={{ marginBottom: '1.25rem', padding: '0.75rem', background: 'rgba(var(--accent-rgb),0.2)', border: '1px solid rgba(var(--accent-rgb),0.3)', borderRadius: 8 }}>
+                  <div style={{ fontSize: '0.62rem', fontFamily: 'inherit', letterSpacing: '0.15em', color: 'var(--accent)', marginBottom: '0.25rem' }}>TOP GENRE</div>
                   <div style={{ fontFamily: 'inherit', fontStyle: 'italic', color: 'var(--text-primary)', fontSize: '1.1rem' }}>{topGenre}</div>
                 </div>
               )}
 
               {/* Top rated */}
               {topRated && (
-                <div style={{ marginBottom: '1.25rem', padding: '0.75rem', background: 'rgba(139,149,245,0.08)', border: '1px solid rgba(139,149,245,0.2)', borderRadius: 8 }}>
+                <div style={{ marginBottom: '1.25rem', padding: '0.75rem', background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.2)', borderRadius: 8 }}>
                   <div style={{ fontSize: '0.62rem', fontFamily: 'inherit', letterSpacing: '0.15em', color: 'var(--gold-dim)', marginBottom: '0.25rem' }}>FAVOURITE BOOK</div>
                   <div style={{ fontFamily: 'inherit', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 500 }}>{topRated.title}</div>
                   <div style={{ color: 'var(--gold)', fontSize: '0.85rem', marginTop: '0.2rem' }}>{'★'.repeat(topRated.rating)}</div>
@@ -90,7 +90,7 @@ export default function WrappedPage() {
               )}
 
               {/* Personality */}
-              <div style={{ borderTop: '1px solid rgba(139,149,245,0.15)', paddingTop: '1.25rem' }}>
+              <div style={{ borderTop: '1px solid rgba(var(--accent-rgb),0.15)', paddingTop: '1.25rem' }}>
                 <div style={{ fontSize: '0.62rem', fontFamily: 'inherit', letterSpacing: '0.15em', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>YOUR READING SPIRIT</div>
                 <div style={{ fontFamily: 'inherit', fontSize: '1rem', color: 'var(--gold-light)', marginBottom: '0.3rem', fontWeight: 600 }}>{personality.title}</div>
                 <div style={{ fontFamily: 'inherit', fontStyle: 'italic', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{personality.desc}</div>

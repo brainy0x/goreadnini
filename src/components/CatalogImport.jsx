@@ -65,6 +65,7 @@ export default function CatalogImport({ onRead }) {
         title: item.title,
         author: item.author,
         shelf: 'reading',
+        category: 'novel',
         file_name: file.name,
         file_type: 'epub',
         has_file: false,

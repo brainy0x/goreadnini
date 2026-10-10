@@ -12,8 +12,10 @@ const TABS = [
 export default function ReaderDrawer({
   tocItems, currentChapter, bookmarks, highlights,
   onOpenToc, onOpenCfi, onDeleteBookmark, onDeleteHighlight, onClose,
+  showHighlights = true,
 }) {
   const [tab, setTab] = useState('toc')
+  const tabs = showHighlights ? TABS : TABS.filter(t => t.id !== 'highlights')
 
   return (
     <div className="rd-drawer-wrap" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -24,7 +26,7 @@ export default function ReaderDrawer({
         </div>
 
         <div className="rd-tabs">
-          {TABS.map(t => (
+          {tabs.map(t => (
             <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
               {t.label}
               {t.id === 'bookmarks' && bookmarks.length > 0 && <small>{bookmarks.length}</small>}

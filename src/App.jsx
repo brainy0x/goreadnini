@@ -6,6 +6,11 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import AccessGate from './components/AccessGate'
 import Sidebar from './components/Sidebar'
 import EpubReader from './components/EpubReader'
+import PdfReader from './components/PdfReader'
+import PomodoroFloat from './components/PomodoroFloat'
+import GlitterBackground from './components/GlitterBackground'
+import { PomodoroProvider } from './contexts/PomodoroContext'
+import { AppThemeProvider } from './contexts/AppThemeContext'
 import ShelfPage from './pages/ShelfPage'
 import SearchPage from './pages/SearchPage'
 import UploadPage from './pages/UploadPage'
@@ -13,6 +18,8 @@ import NotesPage from './pages/NotesPage'
 import ProgressPage from './pages/ProgressPage'
 
 const ACCESS_CODE_KEY = 'grn_access'
+
+const isPdfBook = (b) => b.file_type === 'pdf' || /\.pdf$/i.test(b.file_name || '')
 
 const MOBILE_TABS = [
   { id: 'shelf',    label: 'Library',  icon: Library },
@@ -70,19 +77,23 @@ function AppShell() {
 
   const renderPage = () => {
     switch (page) {
-      case 'shelf':      return <ShelfPage onRead={setReadingBook} onNavigate={navigate} />
+      case 'shelf':      return <ShelfPage onRead={setReadingBook} onNavigate={navigate} isMobile={isMobile} />
       case 'search':     return <SearchPage onRead={setReadingBook} onNavigate={navigate} />
       case 'upload':     return <UploadPage onRead={setReadingBook} />
       case 'notes':      return <NotesPage />
       case 'progress':   return <ProgressPage />
-      default:           return <ShelfPage onRead={setReadingBook} onNavigate={navigate} />
+      default:           return <ShelfPage onRead={setReadingBook} onNavigate={navigate} isMobile={isMobile} />
     }
   }
 
   return (
     <div className="app-shell">
+      <GlitterBackground />
+      {!readingBook && <PomodoroFloat />}
       {readingBook && (
-        <EpubReader book={readingBook} onClose={() => setReadingBook(null)} />
+        isPdfBook(readingBook)
+          ? <PdfReader book={readingBook} onClose={() => setReadingBook(null)} />
+          : <EpubReader book={readingBook} onClose={() => setReadingBook(null)} />
       )}
 
       {/* Sidebar + backdrop */}
@@ -156,7 +167,11 @@ export default function App() {
     <ToastProvider>
       <ThemeProvider>
         <BooksProvider userId={null}>
-          <AppShell />
+          <AppThemeProvider>
+            <PomodoroProvider>
+              <AppShell />
+            </PomodoroProvider>
+          </AppThemeProvider>
         </BooksProvider>
       </ThemeProvider>
     </ToastProvider>

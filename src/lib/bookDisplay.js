@@ -39,3 +39,14 @@ export function coverPattern(seed = '') {
   for (let i = 0; i < seed.length; i++) h = (h * 33 + seed.charCodeAt(i)) >>> 0
   return h % 5
 }
+
+// ── Library categories ──
+export const CATEGORIES = [
+  { id: 'novel',    label: 'Novels',   single: 'Novel' },
+  { id: 'academic', label: 'Academic', single: 'Academic' },
+]
+
+// Books saved before categories existed: PDFs are almost always study material, everything else is a novel
+export const categoryOf = (book) => book.category || (book.file_type === 'pdf' ? 'academic' : 'novel')
+
+export const categoryLabel = (id) => CATEGORIES.find(c => c.id === id)?.single || 'Novel'
